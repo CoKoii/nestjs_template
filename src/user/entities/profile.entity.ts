@@ -4,8 +4,8 @@ import {
   JoinColumn,
   OneToOne,
   PrimaryGeneratedColumn,
-} from 'typeorm';
-import { User } from './user.entity';
+} from "typeorm";
+import { User } from "./user.entity";
 
 @Entity()
 export class Profile {

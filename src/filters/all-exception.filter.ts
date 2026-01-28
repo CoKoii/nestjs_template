@@ -5,9 +5,9 @@ import {
   ExceptionFilter,
   type LoggerService,
   HttpStatus,
-} from '@nestjs/common';
-import type { HttpAdapterHost } from '@nestjs/core';
-import { Response, Request } from 'express';
+} from "@nestjs/common";
+import type { HttpAdapterHost } from "@nestjs/core";
+import { Response, Request } from "express";
 @Catch()
 export class AllExceptionFilter implements ExceptionFilter {
   constructor(
@@ -24,11 +24,11 @@ export class AllExceptionFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
     const exceptionName =
-      exception instanceof Error ? exception.name : 'UnknownException';
+      exception instanceof Error ? exception.name : "UnknownException";
     const errorResponse =
       exception instanceof HttpException
         ? exception.getResponse()
-        : 'Internal Server Error';
+        : "Internal Server Error";
     const responseBody = {
       headers: request.headers,
       query: request.query,
@@ -40,7 +40,7 @@ export class AllExceptionFilter implements ExceptionFilter {
       error: errorResponse,
     };
 
-    this.logger.error('[toimc]', responseBody);
+    this.logger.error("[toimc]", responseBody);
     httpAdapter.reply(response, responseBody, httpStatus);
   }
 }

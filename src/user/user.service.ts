@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common';
-import { User } from './entities/user.entity';
-import type { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Logs } from '../logs/logs.entity';
+import { Injectable } from "@nestjs/common";
+import { User } from "./entities/user.entity";
+import type { Repository } from "typeorm";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Logs } from "../logs/logs.entity";
 
 @Injectable()
 export class UserService {
@@ -49,13 +49,13 @@ export class UserService {
   }
   findLogsByGroup(id: number) {
     return this.logsRepository
-      .createQueryBuilder('logs')
-      .select('logs.result', 'result')
-      .addSelect('COUNT(logs.result)', 'count')
-      .leftJoinAndSelect('logs.user', 'user')
-      .where('user.id = :id', { id })
-      .groupBy('logs.result')
-      .orderBy('result', 'DESC')
+      .createQueryBuilder("logs")
+      .select("logs.result", "result")
+      .addSelect("COUNT(logs.result)", "count")
+      .leftJoinAndSelect("logs.user", "user")
+      .where("user.id = :id", { id })
+      .groupBy("logs.result")
+      .orderBy("result", "DESC")
       .getRawMany();
   }
 }
