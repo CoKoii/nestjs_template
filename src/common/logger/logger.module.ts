@@ -1,14 +1,14 @@
 import { Module } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import winston from "winston";
 import {
   utilities,
   WinstonModule,
   type WinstonModuleOptions,
 } from "nest-winston";
+import winston from "winston";
 import DailyRotateFile from "winston-daily-rotate-file";
 import { Console } from "winston/lib/winston/transports";
-import { LogEnum } from "../enum/config";
+import { LogEnum } from "../../enum/config";
 const createDailyTransport = (level: string, filename: string) =>
   new DailyRotateFile({
     level,
@@ -52,4 +52,4 @@ const createDailyTransport = (level: string, filename: string) =>
     }),
   ],
 })
-export class LogsModule {}
+export class LoggerModule {}

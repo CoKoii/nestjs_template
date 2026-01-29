@@ -1,3 +1,4 @@
+```ts
 import {
   Controller,
   Get,
@@ -55,3 +56,4 @@ export class UserController {
     }));
   }
 }
+```

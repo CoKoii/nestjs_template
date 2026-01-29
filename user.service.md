@@ -1,8 +1,9 @@
+```ts
 import { Injectable } from "@nestjs/common";
-import { User } from "./entities/user.entity";
-import type { Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
+import type { Repository } from "typeorm";
 import { Logs } from "../logs/logs.entity";
+import { User } from "./entities/user.entity";
 
 @Injectable()
 export class UserService {
@@ -59,3 +60,4 @@ export class UserService {
       .getRawMany();
   }
 }
+```

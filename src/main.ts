@@ -2,7 +2,7 @@ import { Logger } from "@nestjs/common";
 import { HttpAdapterHost, NestFactory } from "@nestjs/core";
 import { WINSTON_MODULE_NEST_PROVIDER } from "nest-winston";
 import { AppModule } from "./app.module";
-import { AllExceptionFilter } from "./filters/all-exception.filter";
+import { AllExceptionFilter } from "./common/filters/all-exception.filter";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
