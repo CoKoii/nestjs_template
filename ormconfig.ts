@@ -1,13 +1,13 @@
-import type { TypeOrmModuleOptions } from '@nestjs/typeorm';
-import { DataSource, type DataSourceOptions } from 'typeorm';
-import * as fs from 'fs';
-import * as dotenv from 'dotenv';
-import { ConfigEnum } from './src/enum/config';
+import type { TypeOrmModuleOptions } from "@nestjs/typeorm";
+import * as dotenv from "dotenv";
+import * as fs from "fs";
+import { DataSource, type DataSourceOptions } from "typeorm";
+import { ConfigEnum } from "./src/enum/config";
 
 const entitiesDir =
-  process.env.NODE_ENV === 'test'
-    ? [__dirname + '/**/*.entity{.ts}']
-    : [__dirname + '/**/*.entity{.ts,.js}'];
+  process.env.NODE_ENV === "test"
+    ? [__dirname + "/**/*.entity{.ts}"]
+    : [__dirname + "/**/*.entity{.ts,.js}"];
 const getEnv = (env: string) => {
   if (fs.existsSync(env)) {
     return dotenv.parse(fs.readFileSync(env));
@@ -15,7 +15,7 @@ const getEnv = (env: string) => {
   return {};
 };
 const buildConnectionOptions = () => {
-  const defaultConfig = getEnv('.env');
+  const defaultConfig = getEnv(".env");
   const envConfig = getEnv(`.env.${process.env.NODE_ENV}`);
   const config = { ...defaultConfig, ...envConfig };
   return {
@@ -27,13 +27,13 @@ const buildConnectionOptions = () => {
     database: config[ConfigEnum.DB_DATABASE],
     entities: entitiesDir,
     synchronize: true,
-    logging: false,
+    logging: process.env.NODE_ENV === "development",
   } as TypeOrmModuleOptions;
 };
 export const connectionParams = buildConnectionOptions();
 
 export default new DataSource({
   ...connectionParams,
-  migrations: ['src/migration/**'],
+  migrations: ["src/migration/**"],
   subscribers: [],
 } as DataSourceOptions);

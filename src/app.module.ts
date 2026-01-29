@@ -1,12 +1,12 @@
 import { Global, Logger, Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
-import { UserModule } from "./user/user.module";
+import { TypeOrmModule } from "@nestjs/typeorm";
 import * as dotenv from "dotenv";
 import * as Joi from "joi";
-import { TypeOrmModule } from "@nestjs/typeorm";
+import { UserModule } from "./user/user.module";
 
-import { LogsModule } from "./logs/logs.module";
 import { connectionParams } from "../ormconfig";
+import { LogsModule } from "./logs/logs.module";
 const envFilePath = `.env.${process.env.NODE_ENV || "development"}`;
 @Global()
 @Module({
