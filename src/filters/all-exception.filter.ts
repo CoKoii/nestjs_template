@@ -1,13 +1,19 @@
 import {
-  Catch,
-  HttpException,
   ArgumentsHost,
+  Catch,
   ExceptionFilter,
-  type LoggerService,
+  HttpException,
   HttpStatus,
+  type LoggerService,
 } from "@nestjs/common";
 import type { HttpAdapterHost } from "@nestjs/core";
-import { Response, Request } from "express";
+import type { Request, Response } from "express";
+import {
+  buildExceptionLog,
+  buildExceptionResponse,
+  resolveExceptionMessage,
+} from "./exception.utils";
+
 @Catch()
 export class AllExceptionFilter implements ExceptionFilter {
   constructor(
@@ -23,24 +29,17 @@ export class AllExceptionFilter implements ExceptionFilter {
       exception instanceof HttpException
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
-    const exceptionName =
-      exception instanceof Error ? exception.name : "UnknownException";
-    const errorResponse =
-      exception instanceof HttpException
-        ? exception.getResponse()
-        : "Internal Server Error";
-    const responseBody = {
-      headers: request.headers,
-      query: request.query,
-      body: request.body as unknown,
-      params: request.params,
-      timestamp: new Date().toISOString(),
-      ip: request.ip,
-      exception: exceptionName,
-      error: errorResponse,
-    };
-
-    this.logger.error("[toimc]", responseBody);
-    httpAdapter.reply(response, responseBody, httpStatus);
+    const message = resolveExceptionMessage(exception);
+    const error = exception instanceof Error ? exception : undefined;
+    const path = request.originalUrl ?? request.url;
+    this.logger.error(
+      `[${path}]`,
+      buildExceptionLog(request, httpStatus, message, error),
+    );
+    httpAdapter.reply(
+      response,
+      buildExceptionResponse(httpStatus, message, path),
+      httpStatus,
+    );
   }
 }
