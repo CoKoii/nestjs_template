@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from "@nestjs/common";
+import { HttpException, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import type { Repository } from "typeorm";
 import type { CreateUserDto } from "../user/dto/create-user.dto";
@@ -25,10 +25,10 @@ export class AuthService {
     } catch (error) {
       const err = error as { code?: string };
       if (err.code === "ER_DUP_ENTRY") {
-        throw new BadRequestException("用户名已存在，请更换");
+        throw new HttpException("用户名已存在，请更换", 400);
       }
       if (err.code === "ER_NO_DEFAULT_FOR_FIELD") {
-        throw new BadRequestException("缺少必填字段");
+        throw new HttpException("缺少必填字段", 400);
       }
       throw error;
     }
@@ -51,10 +51,10 @@ export class AuthService {
     } catch (error) {
       const err = error as { code?: string; name?: string };
       if (err.code === "ER_NO_DEFAULT_FOR_FIELD") {
-        throw new BadRequestException("缺少必填字段");
+        throw new HttpException("缺少必填字段", 400);
       }
       if (err.code === "ER_LOCK_DEADLOCK" || err.name === "EntityNotFound") {
-        throw new BadRequestException("用户名或密码错误");
+        throw new HttpException("用户名或密码错误", 400);
       }
       throw error;
     }
