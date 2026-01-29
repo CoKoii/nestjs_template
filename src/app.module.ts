@@ -5,6 +5,7 @@ import * as dotenv from "dotenv";
 
 import { connectionParams, validationSchema } from "../ormconfig";
 import { LoggerModule } from "./common/logger/logger.module";
+import { AuthModule } from "./modules/auth/auth.module";
 import { UserModule } from "./modules/user/user.module";
 const envFilePath = `.env.${process.env.NODE_ENV || "development"}`;
 @Global()
@@ -19,6 +20,7 @@ const envFilePath = `.env.${process.env.NODE_ENV || "development"}`;
     TypeOrmModule.forRoot(connectionParams),
     LoggerModule,
     UserModule,
+    AuthModule,
   ],
   controllers: [],
   providers: [Logger],
