@@ -7,6 +7,7 @@ import { ConfigEnum } from "../../enum/config";
 import { User } from "../user/entities/user.entity";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
+import { AuthStrategy } from "./auth.strategy";
 
 @Module({
   imports: [
@@ -16,11 +17,12 @@ import { AuthService } from "./auth.service";
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         secret: configService.get<string>(ConfigEnum.JWT_SECRET),
+        signOptions: { expiresIn: "3600s" },
       }),
       inject: [ConfigService],
     }),
   ],
-  providers: [AuthService],
+  providers: [AuthService, AuthStrategy],
   controllers: [AuthController],
 })
 export class AuthModule {}
