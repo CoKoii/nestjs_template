@@ -25,18 +25,26 @@ export const resolveExceptionMessage = (err: unknown): string => {
   return err instanceof Error ? err.message : DEFAULT_MESSAGE;
 };
 
-export const buildExceptionLog = (request: Request, statusCode: number, message: string, error?: Error) => ({
+export const buildExceptionLog = (
+  request: Request,
+  statusCode: number,
+  message: string,
+  error?: Error,
+) => ({
   method: request.method,
   path: request.originalUrl ?? request.url,
   ip: request.ip,
-  body: request.body,
+  body: request.body as unknown,
   statusCode,
   message,
   exception: error?.name ?? "UnknownException",
   stack: error?.stack,
 });
 
-export const buildExceptionResponse = (statusCode: number, message: string) => ({
+export const buildExceptionResponse = (
+  statusCode: number,
+  message: string,
+) => ({
   code: statusCode,
   message,
   data: null,
