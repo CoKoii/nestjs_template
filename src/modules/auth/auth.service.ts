@@ -14,6 +14,7 @@ export class AuthService {
   ) {}
   private signToken = (user: User) =>
     this.jwtService.signAsync({ sub: user.id, username: user.username });
+  // ----------------------------------------------------------------------
   /**
    * 用户注册
    * @param registerUserDto 用户注册数据
@@ -30,6 +31,7 @@ export class AuthService {
     );
     return { token: await this.signToken(user) };
   }
+  // ----------------------------------------------------------------------
   /**
    * 用户登录
    * @param loginUserDto 用户登录数据
@@ -42,4 +44,5 @@ export class AuthService {
       throw new UnauthorizedException("用户名或密码错误");
     return { token: await this.signToken(user) };
   }
+  // ----------------------------------------------------------------------
 }
