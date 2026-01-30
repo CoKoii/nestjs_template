@@ -12,21 +12,23 @@ export class AuthService {
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     private jwtService: JwtService,
   ) {}
+  private signToken = (user: User) =>
+    this.jwtService.signAsync({ sub: user.id, username: user.username });
   /**
    * 用户注册
    * @param registerUserDto 用户注册数据
    */
   async signup(registerUserDto: RegisterUserDto) {
-    if (registerUserDto.password !== registerUserDto.confirmPassword) {
+    if (registerUserDto.password !== registerUserDto.confirmPassword)
       throw new UnauthorizedException("两次输入的密码不一致");
-    }
-    const user = this.userRepository.create(registerUserDto);
-    await this.userRepository.save(user);
-    return {
-      code: 201,
-      message: "用户注册成功",
-      data: null,
-    };
+    const existingUser = await this.userRepository.findOneBy({
+      username: registerUserDto.username,
+    });
+    if (existingUser) throw new UnauthorizedException("当前用户名已被注册");
+    const user = await this.userRepository.save(
+      this.userRepository.create(registerUserDto),
+    );
+    return { token: await this.signToken(user) };
   }
   /**
    * 用户登录
@@ -36,13 +38,8 @@ export class AuthService {
     const user = await this.userRepository.findOneBy({
       username: loginUserDto.username,
     });
-    if (user && user.password === loginUserDto.password) {
-      const token = await this.jwtService.signAsync({
-        sub: user.id,
-        username: user.username,
-      });
-      return { token };
-    }
-    throw new UnauthorizedException("用户名或密码错误");
+    if (!user || user.password !== loginUserDto.password)
+      throw new UnauthorizedException("用户名或密码错误");
+    return { token: await this.signToken(user) };
   }
 }
