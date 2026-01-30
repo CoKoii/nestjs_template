@@ -26,6 +26,7 @@ export const validationSchema = Joi.object({
   DB_PASSWORD: Joi.string().required(),
   DB_DATABASE: Joi.string().required(),
   DB_SYNC: Joi.boolean().default(false),
+  JWT_SECRET: Joi.string().required(),
 });
 const buildConnectionOptions = () => {
   const defaultConfig = getEnv(".env");
