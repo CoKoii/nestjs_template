@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { BadRequestException, Injectable } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { InjectRepository } from "@nestjs/typeorm";
 import type { Repository } from "typeorm";
@@ -14,18 +14,21 @@ export class AuthService {
   ) {}
   private signToken = (user: User) =>
     this.jwtService.signAsync({ sub: user.id, username: user.username });
-  async signup(dto: RegisterUserDto) {
+  // ----------------------------------------------------------------------
+  async register(dto: RegisterUserDto) {
     if (dto.password !== dto.confirmPassword)
-      throw new UnauthorizedException("两次输入的密码不一致");
+      throw new BadRequestException("两次输入的密码不一致");
     if (await this.users.findOneBy({ username: dto.username }))
-      throw new UnauthorizedException("当前用户名已被注册");
+      throw new BadRequestException("当前用户名已被注册");
     const user = await this.users.save(this.users.create(dto));
-    return { token: await this.signToken(user) };
+    return { accessToken: await this.signToken(user) };
   }
-  async signin(dto: LoginUserDto) {
+  // ----------------------------------------------------------------------
+  async login(dto: LoginUserDto) {
     const user = await this.users.findOneBy({ username: dto.username });
     if (!user || user.password !== dto.password)
-      throw new UnauthorizedException("用户名或密码错误");
-    return { token: await this.signToken(user) };
+      throw new BadRequestException("用户名或密码错误");
+    return { accessToken: await this.signToken(user) };
   }
+  // ----------------------------------------------------------------------
 }
