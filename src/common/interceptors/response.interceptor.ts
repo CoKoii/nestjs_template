@@ -15,7 +15,7 @@ export class ResponseInterceptor implements NestInterceptor {
     return next.handle().pipe(
       map((data) => ({
         code: 0,
-        message: "ok",
+        message: true,
         data,
         timestamp: Date.now(),
       })),
