@@ -1,4 +1,4 @@
-import { Logger } from "@nestjs/common";
+import { BadRequestException, Logger, ValidationPipe } from "@nestjs/common";
 import { HttpAdapterHost, NestFactory } from "@nestjs/core";
 import { WINSTON_MODULE_NEST_PROVIDER } from "nest-winston";
 import { AppModule } from "./app.module";
@@ -10,6 +10,15 @@ async function bootstrap() {
   app.setGlobalPrefix("api/v1");
   app.useGlobalFilters(
     new AllExceptionFilter(new Logger(), app.get(HttpAdapterHost)),
+  );
+  app.useGlobalPipes(
+    new ValidationPipe({
+      stopAtFirstError: true,
+      exceptionFactory: (errors) =>
+        new BadRequestException(
+          Object.values(errors[0]?.constraints ?? {})[0] ?? "参数校验失败",
+        ),
+    }),
   );
   await app.listen(process.env.PORT ?? 3000);
 }
