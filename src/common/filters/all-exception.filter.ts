@@ -38,7 +38,7 @@ export class AllExceptionFilter implements ExceptionFilter {
     );
     httpAdapter.reply(
       response,
-      buildExceptionResponse(httpStatus, message, path),
+      buildExceptionResponse(httpStatus, message),
       httpStatus,
     );
   }

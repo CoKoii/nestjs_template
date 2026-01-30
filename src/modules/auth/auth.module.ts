@@ -7,7 +7,7 @@ import { ConfigEnum } from "../../enum/config";
 import { User } from "../user/entities/user.entity";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
-import { AuthStrategy } from "./auth.strategy";
+import { JwtStrategy } from "./jwt.strategy";
 
 @Module({
   imports: [
@@ -22,7 +22,7 @@ import { AuthStrategy } from "./auth.strategy";
       inject: [ConfigService],
     }),
   ],
-  providers: [AuthService, AuthStrategy],
+  providers: [AuthService, JwtStrategy],
   controllers: [AuthController],
 })
 export class AuthModule {}

@@ -1,6 +1,6 @@
 import { Equals } from "class-validator";
 
-export class SignupUserDto {
+export class RegisterUserDto {
   username: string;
 
   password: string;

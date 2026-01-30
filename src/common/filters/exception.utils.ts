@@ -41,11 +41,9 @@ export const buildExceptionLog = (
 export const buildExceptionResponse = (
   statusCode: number,
   message: string,
-  path: string,
 ) => ({
   code: statusCode,
   message,
   data: null,
-  timestamp: new Date().toISOString(),
-  path,
+  timestamp: Date.now(),
 });

@@ -3,11 +3,13 @@ import { HttpAdapterHost, NestFactory } from "@nestjs/core";
 import { WINSTON_MODULE_NEST_PROVIDER } from "nest-winston";
 import { AppModule } from "./app.module";
 import { AllExceptionFilter } from "./common/filters/all-exception.filter";
+import { ResponseInterceptor } from "./common/interceptors/response.interceptor";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
   app.setGlobalPrefix("api/v1");
+  app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalFilters(
     new AllExceptionFilter(new Logger(), app.get(HttpAdapterHost)),
   );

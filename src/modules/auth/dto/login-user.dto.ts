@@ -1,6 +1,6 @@
 import { Equals, IsNotEmpty, IsString, Length } from "class-validator";
 
-export class SigninUserDto {
+export class LoginUserDto {
   @IsString()
   @IsNotEmpty()
   @Length(6, 20, { message: "用户名长度应在$constraint1到$constraint2之间" })
