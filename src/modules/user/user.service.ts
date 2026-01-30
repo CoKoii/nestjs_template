@@ -8,24 +8,20 @@ import { User } from "./entities/user.entity";
 @Injectable()
 export class UserService {
   constructor(
-    @InjectRepository(User) private readonly userRepository: Repository<User>,
+    @InjectRepository(User) private readonly users: Repository<User>,
   ) {}
-  create(createUserDto: CreateUserDto) {
-    return "This action adds a new user, " + JSON.stringify(createUserDto);
+  create(dto: CreateUserDto) {
+    return `This action adds a new user, ${JSON.stringify(dto)}`;
   }
-
   findAll() {
-    return this.userRepository.find();
+    return this.users.find();
   }
-
   findOne(id: number) {
-    return this.userRepository.findOneBy({ id });
+    return this.users.findOneBy({ id });
   }
-
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user, ${JSON.stringify(updateUserDto)}`;
+  update(id: number, dto: UpdateUserDto) {
+    return `This action updates a #${id} user, ${JSON.stringify(dto)}`;
   }
-
   remove(id: number) {
     return `This action removes a #${id} user`;
   }

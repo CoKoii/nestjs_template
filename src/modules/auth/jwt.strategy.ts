@@ -6,14 +6,12 @@ import { ConfigEnum } from "../../enum/config";
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(protected configService: ConfigService) {
+  constructor(protected readonly configService: ConfigService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       secretOrKey: configService.get<string>(ConfigEnum.JWT_SECRET),
     });
   }
-  validate(payload: { sub: number; username: string }) {
-    return { userId: payload.sub, username: payload.username };
-  }
+  validate({ sub, username }: { sub: number; username: string }) { return { userId: sub, username }; }
 }

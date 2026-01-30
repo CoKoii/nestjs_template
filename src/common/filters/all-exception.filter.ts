@@ -35,6 +35,7 @@ export class AllExceptionFilter implements ExceptionFilter {
     this.logger.error(
       `[${path}]`,
       buildExceptionLog(request, httpStatus, message, error),
+      AllExceptionFilter.name,
     );
     httpAdapter.reply(
       response,

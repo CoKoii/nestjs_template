@@ -5,16 +5,14 @@ import * as Joi from "joi";
 import { DataSource, type DataSourceOptions } from "typeorm";
 import { ConfigEnum } from "./src/enum/config";
 
-const entitiesDir =
-  process.env.NODE_ENV === "test"
-    ? [__dirname + "/**/*.entity{.ts}"]
-    : [__dirname + "/**/*.entity{.ts,.js}"];
-const getEnv = (env: string) => {
-  if (fs.existsSync(env)) {
-    return dotenv.parse(fs.readFileSync(env));
-  }
-  return {};
-};
+const entitiesDir = [
+  __dirname +
+    (process.env.NODE_ENV === "test"
+      ? "/**/*.entity{.ts}"
+      : "/**/*.entity{.ts,.js}"),
+];
+const getEnv = (path: string) =>
+  fs.existsSync(path) ? dotenv.parse(fs.readFileSync(path)) : {};
 export const validationSchema = Joi.object({
   NODE_ENV: Joi.string()
     .valid("development", "production")
@@ -28,10 +26,11 @@ export const validationSchema = Joi.object({
   DB_SYNC: Joi.boolean().default(false),
   JWT_SECRET: Joi.string().required(),
 });
-const buildConnectionOptions = () => {
-  const defaultConfig = getEnv(".env");
-  const envConfig = getEnv(`.env.${process.env.NODE_ENV}`);
-  const config = { ...defaultConfig, ...envConfig };
+const buildConnectionOptions = (): TypeOrmModuleOptions => {
+  const config = {
+    ...getEnv(".env"),
+    ...getEnv(`.env.${process.env.NODE_ENV}`),
+  };
   return {
     type: config[ConfigEnum.DB_TYPE],
     host: config[ConfigEnum.DB_HOST],

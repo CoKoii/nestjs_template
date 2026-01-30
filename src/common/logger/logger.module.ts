@@ -9,26 +9,29 @@ import winston from "winston";
 import DailyRotateFile from "winston-daily-rotate-file";
 import { Console } from "winston/lib/winston/transports";
 import { LogEnum } from "../../enum/config";
-const createDailyTransport = (level: string, filename: string) =>
+
+const fileFormat = winston.format.combine(
+  winston.format.timestamp(),
+  winston.format.errors({ stack: true }),
+  winston.format.prettyPrint(),
+);
+const createDailyTransport = (level: string) =>
   new DailyRotateFile({
     level,
-    dirname: "logs",
-    filename,
-    datePattern: "YYYY-MM-DD-HH",
+    dirname: `logs/${level}`,
+    filename: "%DATE%.log",
+    datePattern: "YYYY/MM/DD/HH",
     zippedArchive: true,
     maxSize: "20m",
     maxFiles: "14d",
-    format: winston.format.combine(
-      winston.format.timestamp(),
-      winston.format.simple(),
-    ),
+    format: fileFormat,
   });
 @Module({
   imports: [
     WinstonModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
-        const consoleTransports = new Console({
+      useFactory: (configService: ConfigService): WinstonModuleOptions => {
+        const consoleTransport = new Console({
           level: "info",
           format: winston.format.combine(
             winston.format.timestamp(),
@@ -39,15 +42,12 @@ const createDailyTransport = (level: string, filename: string) =>
           configService.get<string>(LogEnum.LOG_ON)?.toLowerCase() === "true";
         return {
           transports: [
-            consoleTransports,
+            consoleTransport,
             ...(isLogOn
-              ? [
-                  createDailyTransport("info", "application-%DATE%.log"),
-                  createDailyTransport("warn", "warn-%DATE%.log"),
-                ]
+              ? [createDailyTransport("info"), createDailyTransport("warn")]
               : []),
           ],
-        } as WinstonModuleOptions;
+        };
       },
     }),
   ],
