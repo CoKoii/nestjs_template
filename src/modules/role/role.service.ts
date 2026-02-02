@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { ConflictException, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import type { Repository } from "typeorm";
 import { CreateRoleDto } from "./dto/create-role.dto";
@@ -13,8 +13,16 @@ export class RoleService {
     private readonly roleRepository: Repository<Role>,
   ) {}
   async create(createRoleDto: CreateRoleDto) {
-    await this.roleRepository.save(createRoleDto);
-    return "创建成功";
+    try {
+      await this.roleRepository.save(createRoleDto);
+      return "创建成功";
+    } catch (err) {
+      const error = err as { code?: string; errno?: number };
+      if (error.code === "ER_DUP_ENTRY" || error.errno === 1062) {
+        throw new ConflictException("角色名称已存在");
+      }
+      throw err;
+    }
   }
 
   async findAll(query: FindAllRoleDto) {
@@ -42,8 +50,16 @@ export class RoleService {
   }
 
   async update(id: number, updateRoleDto: UpdateRoleDto) {
-    await this.roleRepository.update(id, updateRoleDto);
-    return "更新成功";
+    try {
+      await this.roleRepository.update(id, updateRoleDto);
+      return "更新成功";
+    } catch (err) {
+      const error = err as { code?: string; errno?: number };
+      if (error.code === "ER_DUP_ENTRY" || error.errno === 1062) {
+        throw new ConflictException("角色名称已存在");
+      }
+      throw err;
+    }
   }
 
   remove(id: number) {

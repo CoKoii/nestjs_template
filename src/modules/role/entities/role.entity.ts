@@ -5,7 +5,7 @@ import { User } from "../../user/entities/user.entity";
 export class Role {
   @PrimaryGeneratedColumn({ comment: "主键ID" })
   id: number;
-  @Column({ comment: "角色名称", length: 50 })
+  @Column({ comment: "角色名称", length: 50, unique: true })
   roleName: string;
   @Column({ comment: "角色描述", length: 255, nullable: true })
   description?: string;
