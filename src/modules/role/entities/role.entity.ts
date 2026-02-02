@@ -1,0 +1,14 @@
+import { Column, Entity, ManyToMany, PrimaryGeneratedColumn } from "typeorm";
+import { User } from "../../user/entities/user.entity";
+
+@Entity({ comment: "角色" })
+export class Role {
+  @PrimaryGeneratedColumn({ comment: "主键ID" })
+  id: number;
+  @Column({ comment: "角色名称", length: 50 })
+  name: string;
+  @Column({ comment: "角色描述", length: 255, nullable: true })
+  description?: string;
+  @ManyToMany(() => User, (user) => user.roles)
+  users: User[];
+}

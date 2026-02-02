@@ -1,5 +1,13 @@
-import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import {
+  Column,
+  Entity,
+  JoinTable,
+  ManyToMany,
+  OneToOne,
+  PrimaryGeneratedColumn,
+} from "typeorm";
 import { Profile } from "../../profile/entities/profile.entity";
+import { Role } from "../../role/entities/role.entity";
 
 @Entity({ comment: "用户" })
 export class User {
@@ -11,4 +19,7 @@ export class User {
   password: string;
   @OneToOne(() => Profile, (profile) => profile.user, { cascade: true })
   profile: Profile;
+  @ManyToMany(() => Role, (role) => role.users)
+  @JoinTable({ name: "users_roles" })
+  roles: Role[];
 }

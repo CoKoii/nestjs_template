@@ -9,6 +9,7 @@ import { LoggerModule } from "./common/logger/logger.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { UserModule } from "./modules/user/user.module";
 import { ProfileModule } from './modules/profile/profile.module';
+import { RoleModule } from './modules/role/role.module';
 
 const envFilePath = `.env.${process.env.NODE_ENV || "development"}`;
 @Global()
@@ -25,6 +26,7 @@ const envFilePath = `.env.${process.env.NODE_ENV || "development"}`;
     UserModule,
     AuthModule,
     ProfileModule,
+    RoleModule,
   ],
   providers: [Logger, { provide: APP_GUARD, useClass: JwtAuthGuard }],
   exports: [Logger],
