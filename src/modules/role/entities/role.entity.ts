@@ -6,7 +6,7 @@ export class Role {
   @PrimaryGeneratedColumn({ comment: "主键ID" })
   id: number;
   @Column({ comment: "角色名称", length: 50 })
-  name: string;
+  roleName: string;
   @Column({ comment: "角色描述", length: 255, nullable: true })
   description?: string;
   @ManyToMany(() => User, (user) => user.roles)

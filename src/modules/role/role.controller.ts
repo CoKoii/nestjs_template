@@ -6,7 +6,9 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from "@nestjs/common";
+import type { FindAllUserDto } from "../user/dto/find-all-user.dto";
 import { CreateRoleDto } from "./dto/create-role.dto";
 import { UpdateRoleDto } from "./dto/update-role.dto";
 import { RoleService } from "./role.service";
@@ -20,8 +22,8 @@ export class RoleController {
   }
 
   @Get()
-  findAll() {
-    return this.roleService.findAll();
+  findAll(@Query() query: FindAllUserDto) {
+    return this.roleService.findAll(query);
   }
 
   @Get(":id")

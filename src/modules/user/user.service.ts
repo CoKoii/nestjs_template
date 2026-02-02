@@ -9,20 +9,20 @@ export class UserService {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
   ) {}
-  async findAll(body: FindAllUserDto) {
-    const page = Math.max(1, Number(body.page) || 1);
-    const pageSize = Math.max(1, Number(body.pageSize) || 10);
-    const username = body.username?.trim();
-    const query = this.users
+  async findAll(query: FindAllUserDto) {
+    const page = Math.max(1, Number(query.page) || 1);
+    const pageSize = Math.max(1, Number(query.pageSize) || 10);
+    const username = query.username?.trim();
+    const queryBuilder = this.users
       .createQueryBuilder("user")
       .orderBy("user.id", "DESC");
     if (username) {
-      query.andWhere("user.username LIKE :username", {
+      queryBuilder.andWhere("user.username LIKE :username", {
         username: `%${username}%`,
       });
     }
-    query.skip((page - 1) * pageSize).take(pageSize);
-    const [items, total] = await query.getManyAndCount();
+    queryBuilder.skip((page - 1) * pageSize).take(pageSize);
+    const [items, total] = await queryBuilder.getManyAndCount();
     return {
       items,
       total,
