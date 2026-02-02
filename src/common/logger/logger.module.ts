@@ -11,16 +11,16 @@ import { Console } from "winston/lib/winston/transports";
 import { LogEnum } from "../../enum/config";
 
 const fileFormat = winston.format.combine(
-  winston.format.timestamp(),
+  winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
   winston.format.errors({ stack: true }),
   winston.format.prettyPrint(),
 );
 const createDailyTransport = (level: string) =>
   new DailyRotateFile({
     level,
-    dirname: `logs/${level}`,
-    filename: "%DATE%.log",
-    datePattern: "YYYY/MM/DD/HH",
+    dirname: `logs/${level}/%DATE%`,
+    filename: ".log",
+    datePattern: "YYYY/MM/DD",
     zippedArchive: true,
     maxSize: "20m",
     maxFiles: "14d",
@@ -34,7 +34,7 @@ const createDailyTransport = (level: string) =>
         const consoleTransport = new Console({
           level: "info",
           format: winston.format.combine(
-            winston.format.timestamp(),
+            winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
             utilities.format.nestLike(),
           ),
         });
