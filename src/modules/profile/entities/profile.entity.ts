@@ -13,8 +13,6 @@ export class Profile {
   id: number;
   @Column({ comment: "昵称" })
   nickname: string;
-  @Column({ comment: "邮箱", unique: true })
-  email: string;
   @OneToOne(() => User, (user) => user.profile)
   @JoinColumn()
   user: User;

@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { InjectRepository } from "@nestjs/typeorm";
 import type { Repository } from "typeorm";
+import { Profile } from "../profile/entities/profile.entity";
 import { User } from "../user/entities/user.entity";
 import { LoginUserDto } from "./dto/login-user.dto";
 import { RegisterUserDto } from "./dto/register-user.dto";
@@ -10,6 +11,7 @@ import { RegisterUserDto } from "./dto/register-user.dto";
 export class AuthService {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
+    @InjectRepository(Profile) private readonly profiles: Repository<Profile>,
     private readonly jwtService: JwtService,
   ) {}
   private signToken = (user: User) =>
@@ -20,7 +22,11 @@ export class AuthService {
       throw new BadRequestException("两次输入的密码不一致");
     if (await this.users.findOneBy({ username: dto.username }))
       throw new BadRequestException("当前用户名已被注册");
-    const user = await this.users.save(this.users.create(dto));
+    const user = await this.users.save(
+      this.users.create({ username: dto.username, password: dto.password }),
+    );
+    const profile = this.profiles.create({ nickname: dto.username, user });
+    await this.profiles.save(profile);
     return { accessToken: await this.signToken(user) };
   }
   // ----------------------------------------------------------------------
