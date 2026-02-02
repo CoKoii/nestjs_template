@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import type { Repository } from "typeorm";
 import { FindAllUserDto } from "./dto/find-all-user.dto";
+import type { UpdateUserDto } from "./dto/update-user.dto";
 import { User } from "./entities/user.entity";
 
 @Injectable()
@@ -28,11 +29,14 @@ export class UserService {
       total,
     };
   }
-  findOne(id: number) {
-    return this.users.findOneBy({ id });
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async update(id: number, updateUserDto: UpdateUserDto) {
+    if (updateUserDto.password !== updateUserDto.confirmPassword) {
+      throw new Error("两次输入的密码不一致");
+    }
+    await this.users.update(id, {
+      username: updateUserDto.username,
+      password: updateUserDto.password,
+    });
+    return "更新成功";
   }
 }
