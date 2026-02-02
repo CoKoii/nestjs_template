@@ -13,8 +13,11 @@ export class UserService {
   create(dto: CreateUserDto) {
     return `This action adds a new user, ${JSON.stringify(dto)}`;
   }
-  findAll() {
-    return this.users.find();
+  async findAll() {
+    return {
+      items: await this.users.find(),
+      total: await this.users.count(),
+    };
   }
   findOne(id: number) {
     return this.users.findOneBy({ id });
