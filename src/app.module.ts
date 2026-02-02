@@ -8,6 +8,7 @@ import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
 import { LoggerModule } from "./common/logger/logger.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { UserModule } from "./modules/user/user.module";
+import { ProfileModule } from './modules/profile/profile.module';
 
 const envFilePath = `.env.${process.env.NODE_ENV || "development"}`;
 @Global()
@@ -23,6 +24,7 @@ const envFilePath = `.env.${process.env.NODE_ENV || "development"}`;
     LoggerModule,
     UserModule,
     AuthModule,
+    ProfileModule,
   ],
   providers: [Logger, { provide: APP_GUARD, useClass: JwtAuthGuard }],
   exports: [Logger],

@@ -1,4 +1,5 @@
-import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Profile } from "../../profile/entities/profile.entity";
 
 @Entity({ comment: "用户" })
 export class User {
@@ -8,4 +9,6 @@ export class User {
   username: string;
   @Column({ comment: "用户密码" })
   password: string;
+  @OneToOne(() => Profile, (profile) => profile.user, { cascade: true })
+  profile: Profile;
 }
