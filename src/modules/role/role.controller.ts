@@ -4,8 +4,8 @@ import {
   Delete,
   Get,
   Param,
-  Patch,
   Post,
+  Put,
   Query,
 } from "@nestjs/common";
 import type { FindAllUserDto } from "../user/dto/find-all-user.dto";
@@ -17,7 +17,7 @@ import { RoleService } from "./role.service";
 export class RoleController {
   constructor(private readonly roleService: RoleService) {}
   @Post()
-  create(@Body() createRoleDto: CreateRoleDto) {
+  async create(@Body() createRoleDto: CreateRoleDto) {
     return this.roleService.create(createRoleDto);
   }
 
@@ -31,7 +31,7 @@ export class RoleController {
     return this.roleService.findOne(+id);
   }
 
-  @Patch(":id")
+  @Put(":id")
   update(@Param("id") id: string, @Body() updateRoleDto: UpdateRoleDto) {
     return this.roleService.update(+id, updateRoleDto);
   }

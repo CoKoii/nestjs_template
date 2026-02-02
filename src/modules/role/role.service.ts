@@ -12,8 +12,9 @@ export class RoleService {
     @InjectRepository(Role)
     private readonly roleRepository: Repository<Role>,
   ) {}
-  create(createRoleDto: CreateRoleDto) {
-    return this.roleRepository.create(createRoleDto);
+  async create(createRoleDto: CreateRoleDto) {
+    await this.roleRepository.save(createRoleDto);
+    return "创建成功";
   }
 
   async findAll(query: FindAllRoleDto) {
@@ -40,8 +41,9 @@ export class RoleService {
     return `This action returns a #${id} role`;
   }
 
-  update(id: number, updateRoleDto: UpdateRoleDto) {
-    return `This action updates a #${id} role`;
+  async update(id: number, updateRoleDto: UpdateRoleDto) {
+    await this.roleRepository.update(id, updateRoleDto);
+    return "更新成功";
   }
 
   remove(id: number) {
