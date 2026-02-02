@@ -16,6 +16,7 @@ export class UserService {
     const username = query.username?.trim();
     const queryBuilder = this.users
       .createQueryBuilder("user")
+      .leftJoinAndSelect("user.roles", "role")
       .orderBy("user.id", "DESC");
     if (username) {
       queryBuilder.andWhere("user.username LIKE :username", {
@@ -33,9 +34,11 @@ export class UserService {
     if (updateUserDto.password !== updateUserDto.confirmPassword) {
       throw new Error("两次输入的密码不一致");
     }
-    await this.users.update(id, {
+    await this.users.save({
+      id,
       username: updateUserDto.username,
       password: updateUserDto.password,
+      roles: updateUserDto.roles.map((rid) => ({ id: rid })),
     });
     return "更新成功";
   }
