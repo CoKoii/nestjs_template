@@ -1,8 +1,8 @@
 import { ConflictException, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import type { Repository } from "typeorm";
+import { Repository } from "typeorm";
 import { CreateRoleDto } from "./dto/create-role.dto";
-import type { FindAllRoleDto } from "./dto/find-all-role.dto";
+import { FindAllRoleDto } from "./dto/find-all-role.dto";
 import { UpdateRoleDto } from "./dto/update-role.dto";
 import { Role } from "./entities/role.entity";
 

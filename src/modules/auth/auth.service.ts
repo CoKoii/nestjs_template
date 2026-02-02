@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { InjectRepository } from "@nestjs/typeorm";
-import type { Repository } from "typeorm";
+import { Repository } from "typeorm";
 import { Profile } from "../profile/entities/profile.entity";
 import { User } from "../user/entities/user.entity";
 import { LoginUserDto } from "./dto/login-user.dto";

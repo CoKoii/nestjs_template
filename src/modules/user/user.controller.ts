@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Put, Query } from "@nestjs/common";
 import { FindAllUserDto } from "./dto/find-all-user.dto";
-import type { UpdateUserDto } from "./dto/update-user.dto";
+import { UpdateUserDto } from "./dto/update-user.dto";
 import { UserService } from "./user.service";
 
 @Controller("user")
