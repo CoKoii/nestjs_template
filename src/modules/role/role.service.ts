@@ -62,7 +62,8 @@ export class RoleService {
     }
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} role`;
+  async remove(id: number) {
+    await this.roleRepository.delete(id);
+    return "删除成功";
   }
 }
