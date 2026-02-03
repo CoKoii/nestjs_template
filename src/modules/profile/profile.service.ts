@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Profile } from "./entities/profile.entity";
@@ -9,9 +9,22 @@ export class ProfileService {
     @InjectRepository(Profile)
     private readonly profileRepository: Repository<Profile>,
   ) {}
-  findOne(userId: number) {
-    return this.profileRepository.findOne({
-      where: { user: { id: userId } },
-    });
+  async findOne(userId: number) {
+    const profile = await this.profileRepository
+      .createQueryBuilder("profile")
+      .leftJoinAndSelect("profile.user", "user")
+      .leftJoinAndSelect("user.roles", "roles")
+      .where("user.id = :userId", { userId })
+      .getOne();
+
+    if (!profile) {
+      throw new UnauthorizedException(`未找到用户ID为 ${userId} 的个人信息`);
+    }
+
+    const { user, ...profileData } = profile;
+    return {
+      ...profileData,
+      roles: user?.roles || [],
+    };
   }
 }
