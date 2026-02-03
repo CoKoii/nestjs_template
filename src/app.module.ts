@@ -10,6 +10,7 @@ import { AuthModule } from "./modules/auth/auth.module";
 import { ProfileModule } from "./modules/profile/profile.module";
 import { RoleModule } from "./modules/role/role.module";
 import { UserModule } from "./modules/user/user.module";
+import { PermissionModule } from './modules/permission/permission.module';
 
 const envFilePath = `.env.${process.env.NODE_ENV || "development"}`;
 @Global()
@@ -27,6 +28,7 @@ const envFilePath = `.env.${process.env.NODE_ENV || "development"}`;
     AuthModule,
     ProfileModule,
     RoleModule,
+    PermissionModule,
   ],
   providers: [Logger, { provide: APP_GUARD, useClass: JwtAuthGuard }],
   exports: [Logger],

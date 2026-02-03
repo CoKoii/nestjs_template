@@ -1,4 +1,11 @@
-import { Column, Entity, ManyToMany, PrimaryGeneratedColumn } from "typeorm";
+import {
+  Column,
+  Entity,
+  JoinTable,
+  ManyToMany,
+  PrimaryGeneratedColumn,
+} from "typeorm";
+import { Permission } from "../../permission/entities/permission.entity";
 import { User } from "../../user/entities/user.entity";
 
 @Entity({ comment: "角色" })
@@ -13,4 +20,7 @@ export class Role {
   status?: boolean;
   @ManyToMany(() => User, (user) => user.roles)
   users: User[];
+  @ManyToMany(() => Permission, (permission) => permission.roles)
+  @JoinTable({ name: "roles_permissions" })
+  permissions: Permission[];
 }
