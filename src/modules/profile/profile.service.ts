@@ -18,7 +18,7 @@ export class ProfileService {
       .getOne();
 
     if (!profile) {
-      throw new UnauthorizedException(`未找到用户ID为 ${userId} 的个人信息`);
+      throw new UnauthorizedException("用户资料不存在");
     }
 
     const { user, ...profileData } = profile;
