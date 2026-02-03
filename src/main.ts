@@ -16,10 +16,16 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({
       stopAtFirstError: true,
-      exceptionFactory: (errors) =>
-        new BadRequestException(
-          Object.values(errors[0]?.constraints ?? {})[0] ?? "参数校验失败",
-        ),
+      exceptionFactory: (errors) => {
+        const getFirstError = (err: any): string => {
+          if (err.constraints)
+            return Object.values(err.constraints)[0] as string;
+          return err.children?.length
+            ? getFirstError(err.children[0])
+            : "参数校验失败";
+        };
+        return new BadRequestException(getFirstError(errors[0]));
+      },
     }),
   );
   await app.listen(process.env.PORT ?? 3000);
