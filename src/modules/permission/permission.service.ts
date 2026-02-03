@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { ConflictException, Injectable } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { CreatePermissionDto } from "./dto/create-permission.dto";
@@ -12,9 +12,24 @@ export class PermissionService {
     @InjectRepository(Permission)
     private readonly permissionRepository: Repository<Permission>,
   ) {}
-  create(createPermissionDto: CreatePermissionDto) {
-    return this.permissionRepository.save(createPermissionDto);
+  // ----------------------------------------------------------------------
+  // 创建权限
+  async create(createPermissionDto: CreatePermissionDto) {
+    try {
+      await this.permissionRepository.save(createPermissionDto);
+      return "创建成功";
+    } catch (err) {
+      const error = err as { code?: string; errno?: number };
+      if (error.code === "ER_DUP_ENTRY" || error.errno === 1062) {
+        throw new ConflictException(
+          `权限码 "${createPermissionDto.code}" 已存在`,
+        );
+      }
+      throw err;
+    }
   }
+  // ----------------------------------------------------------------------
+  // 获取权限列表 - code 模糊搜索
   async findAll(query: FindAllPermissionDto) {
     const code = query.code?.trim();
     const queryBuilder = this.permissionRepository
@@ -31,18 +46,24 @@ export class PermissionService {
       total,
     };
   }
-
-  findOne(id: number) {
-    return `This action returns a #${id} permission`;
+  // ----------------------------------------------------------------------
+  // 更新权限
+  async update(id: number, updatePermissionDto: UpdatePermissionDto) {
+    try {
+      await this.permissionRepository.update(id, updatePermissionDto);
+      return "更新成功";
+    } catch (err) {
+      const error = err as { code?: string; errno?: number };
+      if (error.code === "ER_DUP_ENTRY" || error.errno === 1062) {
+        throw new ConflictException(
+          `权限码 "${updatePermissionDto.code}" 已存在`,
+        );
+      }
+      throw err;
+    }
   }
-
-  update(id: number, updatePermissionDto: UpdatePermissionDto) {
-    return this.permissionRepository.update(id, updatePermissionDto);
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} permission`;
-  }
+  // ----------------------------------------------------------------------
+  // 根据token获取权限列表
   getPermissionsByToken(userId: number) {
     return this.permissionRepository
       .createQueryBuilder("permission")
@@ -51,4 +72,5 @@ export class PermissionService {
       .where("user.id = :userId", { userId })
       .getMany();
   }
+  // ----------------------------------------------------------------------
 }

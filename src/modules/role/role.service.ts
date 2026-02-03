@@ -12,6 +12,8 @@ export class RoleService {
     @InjectRepository(Role)
     private readonly roleRepository: Repository<Role>,
   ) {}
+  // ----------------------------------------------------------------------
+  // 创建角色
   async create(createRoleDto: CreateRoleDto) {
     try {
       const role = {
@@ -30,7 +32,8 @@ export class RoleService {
       throw err;
     }
   }
-
+  // ----------------------------------------------------------------------
+  // 获取角色列表 - roleName 模糊搜索
   async findAll(query: FindAllRoleDto) {
     const roleName = query.roleName?.trim();
     const queryBuilder = this.roleRepository
@@ -48,15 +51,8 @@ export class RoleService {
       total,
     };
   }
-
-  async findOne(id: number) {
-    const role = await this.roleRepository.findOne({
-      where: { id },
-      relations: ["permissions"],
-    });
-    return role;
-  }
-
+  // ----------------------------------------------------------------------
+  // 更新角色
   async update(id: number, updateRoleDto: UpdateRoleDto) {
     try {
       const role = {
@@ -76,4 +72,5 @@ export class RoleService {
       throw err;
     }
   }
+  // ----------------------------------------------------------------------
 }

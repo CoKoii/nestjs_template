@@ -9,6 +9,8 @@ export class ProfileService {
     @InjectRepository(Profile)
     private readonly profileRepository: Repository<Profile>,
   ) {}
+  // ----------------------------------------------------------------------
+  // 根据token用户资料及其角色信息
   async findOne(userId: number) {
     const profile = await this.profileRepository
       .createQueryBuilder("profile")
@@ -16,15 +18,14 @@ export class ProfileService {
       .leftJoinAndSelect("user.roles", "roles")
       .where("user.id = :userId", { userId })
       .getOne();
-
     if (!profile) {
       throw new UnauthorizedException("用户资料不存在");
     }
-
     const { user, ...profileData } = profile;
     return {
       ...profileData,
       roles: user?.roles || [],
     };
   }
+  // ----------------------------------------------------------------------
 }

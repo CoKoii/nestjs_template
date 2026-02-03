@@ -13,7 +13,7 @@ export class Profile {
   id: number;
   @Column({ comment: "昵称" })
   nickname: string;
-  @OneToOne(() => User, (user) => user.profile, { onDelete: "CASCADE" })
+  @OneToOne(() => User, (user) => user.profile)
   @JoinColumn()
   user: User;
 }

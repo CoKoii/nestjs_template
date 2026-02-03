@@ -1,7 +1,6 @@
 import {
   Body,
   Controller,
-  Delete,
   Get,
   Param,
   Post,
@@ -17,26 +16,26 @@ import { PermissionService } from "./permission.service";
 @Controller("permission")
 export class PermissionController {
   constructor(private readonly permissionService: PermissionService) {}
+  // ----------------------------------------------------------------------
   // 根据token返回用户权限列表
   @Get("token")
   getPermissionsByToken(@Req() req: { user: { userId: number } }) {
     return this.permissionService.getPermissionsByToken(req.user.userId);
   }
+  // ----------------------------------------------------------------------
+  // 创建权限
   @Post()
   create(@Body() createPermissionDto: CreatePermissionDto) {
     return this.permissionService.create(createPermissionDto);
   }
-
+  // ----------------------------------------------------------------------
+  // 获取权限列表
   @Get()
   findAll(@Query() query: FindAllPermissionDto) {
     return this.permissionService.findAll(query);
   }
-
-  @Get(":id")
-  findOne(@Param("id") id: string) {
-    return this.permissionService.findOne(+id);
-  }
-
+  // ----------------------------------------------------------------------
+  // 更新权限
   @Put(":id")
   update(
     @Param("id") id: string,
@@ -44,9 +43,5 @@ export class PermissionController {
   ) {
     return this.permissionService.update(+id, updatePermissionDto);
   }
-
-  @Delete(":id")
-  remove(@Param("id") id: string) {
-    return this.permissionService.remove(+id);
-  }
+  // ----------------------------------------------------------------------
 }

@@ -7,23 +7,25 @@ import { RoleService } from "./role.service";
 @Controller("role")
 export class RoleController {
   constructor(private readonly roleService: RoleService) {}
+  // ----------------------------------------------------------------------
+  // 创建角色
   @Post()
   async create(@Body() createRoleDto: CreateRoleDto) {
     return this.roleService.create(createRoleDto);
   }
 
+  // ----------------------------------------------------------------------
+  // 获取角色列表
   @Get()
   findAll(@Query() query: FindAllRoleDto) {
     return this.roleService.findAll(query);
   }
 
-  @Get(":id")
-  findOne(@Param("id") id: string) {
-    return this.roleService.findOne(+id);
-  }
-
+  // ----------------------------------------------------------------------
+  // 更新角色
   @Put(":id")
   update(@Param("id") id: string, @Body() updateRoleDto: UpdateRoleDto) {
     return this.roleService.update(+id, updateRoleDto);
   }
+  // ----------------------------------------------------------------------
 }
