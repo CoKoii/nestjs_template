@@ -1,13 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Post,
-  Put,
-  Query,
-} from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Put, Query } from "@nestjs/common";
 import { FindAllUserDto } from "../user/dto/find-all-user.dto";
 import { CreateRoleDto } from "./dto/create-role.dto";
 import { UpdateRoleDto } from "./dto/update-role.dto";
@@ -34,10 +25,5 @@ export class RoleController {
   @Put(":id")
   update(@Param("id") id: string, @Body() updateRoleDto: UpdateRoleDto) {
     return this.roleService.update(+id, updateRoleDto);
-  }
-
-  @Delete(":id")
-  remove(@Param("id") id: string) {
-    return this.roleService.remove(+id);
   }
 }

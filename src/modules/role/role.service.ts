@@ -26,8 +26,6 @@ export class RoleService {
   }
 
   async findAll(query: FindAllRoleDto) {
-    const page = Math.max(1, Number(query.page) || 1);
-    const pageSize = Math.max(1, Number(query.pageSize) || 10);
     const roleName = query.roleName?.trim();
     const queryBuilder = this.roleRepository
       .createQueryBuilder("role")
@@ -37,7 +35,6 @@ export class RoleService {
         roleName: `%${roleName}%`,
       });
     }
-    queryBuilder.skip((page - 1) * pageSize).take(pageSize);
     const [items, total] = await queryBuilder.getManyAndCount();
     return {
       items,
@@ -60,10 +57,5 @@ export class RoleService {
       }
       throw err;
     }
-  }
-
-  async remove(id: number) {
-    await this.roleRepository.delete(id);
-    return "删除成功";
   }
 }

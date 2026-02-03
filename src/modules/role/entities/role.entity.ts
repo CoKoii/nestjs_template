@@ -9,6 +9,8 @@ export class Role {
   roleName: string;
   @Column({ comment: "角色描述", length: 255, nullable: true })
   description?: string;
+  @Column({ comment: "状态", default: true, nullable: true })
+  status?: boolean;
   @ManyToMany(() => User, (user) => user.roles)
   users: User[];
 }

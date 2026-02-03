@@ -4,4 +4,5 @@ export class CreateRoleDto {
   @IsNotEmpty({ message: "角色名称不能为空" })
   roleName: string;
   description?: string;
+  status?: boolean;
 }
