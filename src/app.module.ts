@@ -7,10 +7,10 @@ import { connectionParams, validationSchema } from "../ormconfig";
 import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
 import { LoggerModule } from "./common/logger/logger.module";
 import { AuthModule } from "./modules/auth/auth.module";
+import { PermissionModule } from "./modules/permission/permission.module";
 import { ProfileModule } from "./modules/profile/profile.module";
 import { RoleModule } from "./modules/role/role.module";
 import { UserModule } from "./modules/user/user.module";
-import { PermissionModule } from './modules/permission/permission.module';
 
 const envFilePath = `.env.${process.env.NODE_ENV || "development"}`;
 @Global()
