@@ -17,6 +17,7 @@ export class AuthService {
   private signToken = (user: User) =>
     this.jwtService.signAsync({ sub: user.id, username: user.username });
   // ----------------------------------------------------------------------
+  //用户注册
   async register(dto: RegisterUserDto) {
     if (dto.password !== dto.confirmPassword)
       throw new BadRequestException("两次输入的密码不一致");
@@ -30,6 +31,7 @@ export class AuthService {
     return { accessToken: await this.signToken(user) };
   }
   // ----------------------------------------------------------------------
+  //用户登录
   async login(dto: LoginUserDto) {
     const user = await this.users.findOneBy({ username: dto.username });
     if (!user || user.password !== dto.password)

@@ -7,11 +7,14 @@ import { RegisterUserDto } from "./dto/register-user.dto";
 @Controller("auth")
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+  //用户登录接口 不校验token
   @Public()
   @Post("login")
   login(@Body() dto: LoginUserDto) {
     return this.authService.login(dto);
   }
+
+  //用户注册接口 不校验token
   @Public()
   @Post("register")
   register(@Body() dto: RegisterUserDto) {
