@@ -43,4 +43,12 @@ export class PermissionService {
   remove(id: number) {
     return `This action removes a #${id} permission`;
   }
+  getPermissionsByToken(userId: number) {
+    return this.permissionRepository
+      .createQueryBuilder("permission")
+      .leftJoin("permission.roles", "role")
+      .leftJoin("role.users", "user")
+      .where("user.id = :userId", { userId })
+      .getMany();
+  }
 }
