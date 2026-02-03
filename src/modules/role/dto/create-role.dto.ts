@@ -5,4 +5,5 @@ export class CreateRoleDto {
   roleName: string;
   description?: string;
   status?: boolean;
+  permissions?: number[];
 }

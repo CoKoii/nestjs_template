@@ -18,6 +18,7 @@ export class UserService {
       .createQueryBuilder("user")
       .select(["user.id", "user.username"])
       .leftJoinAndSelect("user.roles", "role")
+      .leftJoinAndSelect("role.permissions", "permission")
       .orderBy("user.id", "DESC");
     if (username) {
       queryBuilder.andWhere("user.username LIKE :username", {

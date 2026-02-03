@@ -14,7 +14,13 @@ export class RoleService {
   ) {}
   async create(createRoleDto: CreateRoleDto) {
     try {
-      await this.roleRepository.save(createRoleDto);
+      const role = {
+        roleName: createRoleDto.roleName,
+        description: createRoleDto.description,
+        status: createRoleDto.status,
+        permissions: createRoleDto.permissions?.map((pid) => ({ id: pid })),
+      };
+      await this.roleRepository.save(role);
       return "创建成功";
     } catch (err) {
       const error = err as { code?: string; errno?: number };
@@ -29,6 +35,7 @@ export class RoleService {
     const roleName = query.roleName?.trim();
     const queryBuilder = this.roleRepository
       .createQueryBuilder("role")
+      .leftJoinAndSelect("role.permissions", "permission")
       .orderBy("role.id", "DESC");
     if (roleName) {
       queryBuilder.andWhere("role.roleName LIKE :roleName", {
@@ -42,13 +49,24 @@ export class RoleService {
     };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} role`;
+  async findOne(id: number) {
+    const role = await this.roleRepository.findOne({
+      where: { id },
+      relations: ["permissions"],
+    });
+    return role;
   }
 
   async update(id: number, updateRoleDto: UpdateRoleDto) {
     try {
-      await this.roleRepository.update(id, updateRoleDto);
+      const role = {
+        id,
+        roleName: updateRoleDto.roleName,
+        description: updateRoleDto.description,
+        status: updateRoleDto.status,
+        permissions: updateRoleDto.permissions?.map((pid) => ({ id: pid })),
+      };
+      await this.roleRepository.save(role);
       return "更新成功";
     } catch (err) {
       const error = err as { code?: string; errno?: number };

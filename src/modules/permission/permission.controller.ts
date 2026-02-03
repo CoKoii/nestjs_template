@@ -4,10 +4,12 @@ import {
   Delete,
   Get,
   Param,
-  Patch,
   Post,
+  Put,
+  Query,
 } from "@nestjs/common";
 import { CreatePermissionDto } from "./dto/create-permission.dto";
+import { FindAllPermissionDto } from "./dto/find-all-permission.dto";
 import { UpdatePermissionDto } from "./dto/update-permission.dto";
 import { PermissionService } from "./permission.service";
 
@@ -21,8 +23,8 @@ export class PermissionController {
   }
 
   @Get()
-  findAll() {
-    return this.permissionService.findAll();
+  findAll(@Query() query: FindAllPermissionDto) {
+    return this.permissionService.findAll(query);
   }
 
   @Get(":id")
@@ -30,7 +32,7 @@ export class PermissionController {
     return this.permissionService.findOne(+id);
   }
 
-  @Patch(":id")
+  @Put(":id")
   update(
     @Param("id") id: string,
     @Body() updatePermissionDto: UpdatePermissionDto,

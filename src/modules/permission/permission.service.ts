@@ -1,15 +1,35 @@
-import { Injectable } from '@nestjs/common';
-import { CreatePermissionDto } from './dto/create-permission.dto';
-import { UpdatePermissionDto } from './dto/update-permission.dto';
+import { Injectable } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { CreatePermissionDto } from "./dto/create-permission.dto";
+import type { FindAllPermissionDto } from "./dto/find-all-permission.dto";
+import { UpdatePermissionDto } from "./dto/update-permission.dto";
+import { Permission } from "./entities/permission.entity";
 
 @Injectable()
 export class PermissionService {
+  constructor(
+    @InjectRepository(Permission)
+    private readonly permissionRepository: Repository<Permission>,
+  ) {}
   create(createPermissionDto: CreatePermissionDto) {
-    return 'This action adds a new permission';
+    return this.permissionRepository.save(createPermissionDto);
   }
-
-  findAll() {
-    return `This action returns all permission`;
+  async findAll(query: FindAllPermissionDto) {
+    const code = query.code?.trim();
+    const queryBuilder = this.permissionRepository
+      .createQueryBuilder("permission")
+      .orderBy("permission.id", "DESC");
+    if (code) {
+      queryBuilder.andWhere("permission.code LIKE :code", {
+        code: `%${code}%`,
+      });
+    }
+    const [items, total] = await queryBuilder.getManyAndCount();
+    return {
+      items,
+      total,
+    };
   }
 
   findOne(id: number) {
@@ -17,7 +37,7 @@ export class PermissionService {
   }
 
   update(id: number, updatePermissionDto: UpdatePermissionDto) {
-    return `This action updates a #${id} permission`;
+    return this.permissionRepository.update(id, updatePermissionDto);
   }
 
   remove(id: number) {
