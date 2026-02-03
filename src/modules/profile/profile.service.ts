@@ -24,7 +24,7 @@ export class ProfileService {
     const { user, ...profileData } = profile;
     return {
       ...profileData,
-      roles: user?.roles || [],
+      roles: user?.roles?.map((role) => role.roleName) || [],
     };
   }
   // ----------------------------------------------------------------------
