@@ -15,7 +15,6 @@ export class ResponseInterceptor implements NestInterceptor {
     return next.handle().pipe(
       map((data) => ({
         code: 0,
-        message: true,
         data,
         timestamp: new Date().toLocaleString("zh-CN", {
           timeZone: "Asia/Shanghai",
