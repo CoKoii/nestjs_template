@@ -29,7 +29,8 @@ export const resolveExceptionMessage = (err: unknown): string => {
 const parseJWT = (token: string | null | undefined) => {
   if (!token) return null;
   try {
-    const parts = token.split(".");
+    const tokenStr = token.startsWith("Bearer ") ? token.slice(7) : token;
+    const parts = tokenStr.split(".");
     const p = JSON.parse(Buffer.from(parts[1], "base64").toString());
     return {
       sub: p.sub,

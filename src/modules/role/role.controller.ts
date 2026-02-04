@@ -1,5 +1,4 @@
 import { Body, Controller, Get, Param, Post, Put, Query } from "@nestjs/common";
-import { Roles } from "../../common/decorators/roles.decorator";
 import { CreateRoleDto } from "./dto/create-role.dto";
 import { FindAllRoleDto } from "./dto/find-all-role.dto";
 import { UpdateRoleDto } from "./dto/update-role.dto";
@@ -24,7 +23,7 @@ export class RoleController {
 
   // ----------------------------------------------------------------------
   // 更新角色
-  @Roles("隐官")
+  // @Roles("隐官")
   @Put(":id")
   update(@Param("id") id: string, @Body() updateRoleDto: UpdateRoleDto) {
     return this.roleService.update(+id, updateRoleDto);

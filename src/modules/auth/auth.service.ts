@@ -19,7 +19,8 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
   private signToken = async (user: User) => {
-    const roles = user.roles?.map((r) => r.roleName) ?? [];
+    const roles =
+      user.roles?.filter((r) => r.status).map((r) => r.roleName) ?? [];
     return this.jwtService.signAsync({
       sub: user.id,
       username: user.username,

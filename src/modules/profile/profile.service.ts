@@ -11,20 +11,20 @@ export class ProfileService {
   ) {}
   // ----------------------------------------------------------------------
   // 根据token用户资料及其角色信息
-  async findOne(userId: number) {
+  async findOne(userId: number, roles: string[] = []) {
     const profile = await this.profileRepository
       .createQueryBuilder("profile")
-      .leftJoinAndSelect("profile.user", "user")
-      .leftJoinAndSelect("user.roles", "roles")
+      .leftJoin("profile.user", "user")
       .where("user.id = :userId", { userId })
       .getOne();
     if (!profile) {
       throw new UnauthorizedException("用户资料不存在");
     }
     const { user, ...profileData } = profile;
+    void user;
     return {
       ...profileData,
-      roles: user?.roles?.map((role) => role.roleName) || [],
+      roles,
     };
   }
   // ----------------------------------------------------------------------
