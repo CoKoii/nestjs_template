@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Role } from "../role/entities/role.entity";
@@ -19,6 +19,7 @@ export class UserService {
     const nickname = query.nickname?.trim();
     const queryBuilder = this.userRepository
       .createQueryBuilder("user")
+      .distinct(true)
       .select(["user.id", "user.username"])
       .leftJoinAndSelect("user.profile", "profile")
       .leftJoinAndSelect("user.roles", "role")
@@ -41,10 +42,15 @@ export class UserService {
       where: { id },
       relations: ["profile", "roles"],
     });
-    if (user.profile) {
+    if (!user) throw new NotFoundException("用户不存在");
+    if (user.profile && updateUserDto.profile) {
       Object.assign(user.profile, updateUserDto.profile);
     }
-    user.roles = updateUserDto.roles.map((roleId) => ({ id: roleId }) as Role);
+    if (Array.isArray(updateUserDto.roles)) {
+      user.roles = updateUserDto.roles.map(
+        (roleId) => ({ id: roleId }) as Role,
+      );
+    }
     await this.userRepository.save(user);
     return "更新成功";
   }

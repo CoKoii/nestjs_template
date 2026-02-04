@@ -1,4 +1,8 @@
-import { ConflictException, Injectable } from "@nestjs/common";
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { CreatePermissionDto } from "./dto/create-permission.dto";
@@ -50,7 +54,19 @@ export class PermissionService {
   // 更新权限
   async update(id: number, updatePermissionDto: UpdatePermissionDto) {
     try {
-      await this.permissionRepository.update(id, updatePermissionDto);
+      const payload: Partial<Permission> = { id };
+      if (updatePermissionDto.code !== undefined) {
+        payload.code = updatePermissionDto.code;
+      }
+      if (updatePermissionDto.description !== undefined) {
+        payload.description = updatePermissionDto.description;
+      }
+      if (updatePermissionDto.status !== undefined) {
+        payload.status = updatePermissionDto.status;
+      }
+      const permission = await this.permissionRepository.preload(payload);
+      if (!permission) throw new NotFoundException("权限不存在");
+      await this.permissionRepository.save(permission);
       return "更新成功";
     } catch (err) {
       const error = err as { code?: string; errno?: number };

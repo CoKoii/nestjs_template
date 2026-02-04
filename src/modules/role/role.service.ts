@@ -1,4 +1,8 @@
-import { ConflictException, Injectable } from "@nestjs/common";
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { CreateRoleDto } from "./dto/create-role.dto";
@@ -55,13 +59,23 @@ export class RoleService {
   // 更新角色
   async update(id: number, updateRoleDto: UpdateRoleDto) {
     try {
-      const role = {
-        id,
-        roleName: updateRoleDto.roleName,
-        description: updateRoleDto.description,
-        status: updateRoleDto.status,
-        permissions: updateRoleDto.permissions?.map((pid) => ({ id: pid })),
-      };
+      const payload: Partial<Role> = { id };
+      if (updateRoleDto.roleName !== undefined) {
+        payload.roleName = updateRoleDto.roleName;
+      }
+      if (updateRoleDto.description !== undefined) {
+        payload.description = updateRoleDto.description;
+      }
+      if (updateRoleDto.status !== undefined) {
+        payload.status = updateRoleDto.status;
+      }
+      if (updateRoleDto.permissions !== undefined) {
+        payload.permissions = updateRoleDto.permissions.map(
+          (pid) => ({ id: pid }) as Role["permissions"][number],
+        );
+      }
+      const role = await this.roleRepository.preload(payload);
+      if (!role) throw new NotFoundException("角色不存在");
       await this.roleRepository.save(role);
       return "更新成功";
     } catch (err) {
