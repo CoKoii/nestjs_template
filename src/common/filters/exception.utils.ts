@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access */
 import { HttpException } from "@nestjs/common";
 import type { Request } from "express";
 import { QueryFailedError } from "typeorm";
@@ -29,19 +30,11 @@ const parseJWT = (token: string | null | undefined) => {
   if (!token) return null;
   try {
     const parts = token.split(".");
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const p = JSON.parse(Buffer.from(parts[1], "base64").toString());
     return {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
       sub: p.sub,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
       username: p.username,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       roles: (p.roles ?? []) as string[],
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
-      iat: p.iat,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
-      exp: p.exp,
     };
   } catch {
     return null;
