@@ -18,10 +18,16 @@ export class AuthService {
     @InjectRepository(Profile) private readonly profiles: Repository<Profile>,
     private readonly jwtService: JwtService,
   ) {}
-  private signToken = (user: User) =>
-    this.jwtService.signAsync({ sub: user.id, username: user.username });
+  private signToken = async (user: User) => {
+    const roles = user.roles?.map((r) => r.roleName) ?? [];
+    return this.jwtService.signAsync({
+      sub: user.id,
+      username: user.username,
+      roles,
+    });
+  };
   // ----------------------------------------------------------------------
-  //用户注册 密码加密
+  // 用户注册 密码加密
   async register(dto: RegisterUserDto) {
     if (dto.password !== dto.confirmPassword)
       throw new BadRequestException("两次输入的密码不一致");
@@ -33,14 +39,20 @@ export class AuthService {
         password: await argon2.hash(dto.password),
       }),
     );
-    const profile = this.profiles.create({ nickname: dto.username, user });
-    await this.profiles.save(profile);
+    await this.profiles.save(
+      this.profiles.create({ nickname: dto.username, user }),
+    );
+    user.roles = [];
     return { accessToken: await this.signToken(user) };
   }
+
   // ----------------------------------------------------------------------
-  //用户登录 密码验证
+  // 用户登录 密码验证
   async login(dto: LoginUserDto) {
-    const user = await this.users.findOneBy({ username: dto.username });
+    const user = await this.users.findOne({
+      where: { username: dto.username },
+      relations: ["roles"],
+    });
     if (!user || !(await argon2.verify(user.password, dto.password)))
       throw new ForbiddenException("用户名或密码错误");
     return { accessToken: await this.signToken(user) };

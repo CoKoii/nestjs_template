@@ -25,6 +25,29 @@ export const resolveExceptionMessage = (err: unknown): string => {
   return err instanceof Error ? err.message : DEFAULT_MESSAGE;
 };
 
+const parseJWT = (token: string | null | undefined) => {
+  if (!token) return null;
+  try {
+    const parts = token.split(".");
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const p = JSON.parse(Buffer.from(parts[1], "base64").toString());
+    return {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
+      sub: p.sub,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
+      username: p.username,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      roles: (p.roles ?? []) as string[],
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
+      iat: p.iat,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access
+      exp: p.exp,
+    };
+  } catch {
+    return null;
+  }
+};
+
 export const buildExceptionLog = (
   request: Request,
   statusCode: number,
@@ -36,6 +59,7 @@ export const buildExceptionLog = (
   ip: request.ip,
   body: (request.body as unknown) ?? null,
   token: request.headers["authorization"] ?? null,
+  tokenInfo: parseJWT(request.headers["authorization"]),
   statusCode,
   message,
   exception: error?.name ?? "UnknownException",

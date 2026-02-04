@@ -13,7 +13,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       secretOrKey: configService.get<string>(ConfigEnum.JWT_SECRET),
     });
   }
-  validate({ sub, username }: { sub: number; username: string }) {
-    return { userId: sub, username };
+  validate({
+    sub,
+    username,
+    roles,
+  }: {
+    sub: number;
+    username: string;
+    roles: string[];
+  }) {
+    return { userId: sub, username, roles };
   }
 }
