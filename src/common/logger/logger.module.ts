@@ -23,7 +23,7 @@ const createDailyTransport = (level: string) =>
     datePattern: "YYYY/MM/DD",
     zippedArchive: true,
     maxSize: "20m",
-    maxFiles: "14d",
+    maxFiles: "7d",
     format: fileFormat,
   });
 @Module({
