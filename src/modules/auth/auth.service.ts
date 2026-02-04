@@ -19,12 +19,21 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
   private signToken = async (user: User) => {
-    const roles =
-      user.roles?.filter((r) => r.status).map((r) => r.roleName) ?? [];
+    const activeRoles = user.roles?.filter((role) => role.status) ?? [];
+    const roles = activeRoles.map((role) => role.roleName);
+    const permissions = Array.from(
+      new Set(
+        activeRoles
+          .flatMap((role) => role.permissions ?? [])
+          .filter((permission) => permission?.status)
+          .map((permission) => permission.code),
+      ),
+    );
     return this.jwtService.signAsync({
       sub: user.id,
       username: user.username,
       roles,
+      permissions,
     });
   };
   // ----------------------------------------------------------------------
@@ -52,7 +61,7 @@ export class AuthService {
   async login(dto: LoginUserDto) {
     const user = await this.users.findOne({
       where: { username: dto.username },
-      relations: ["roles"],
+      relations: ["roles", "roles.permissions"],
     });
     if (!user || !(await argon2.verify(user.password, dto.password)))
       throw new ForbiddenException("用户名或密码错误");

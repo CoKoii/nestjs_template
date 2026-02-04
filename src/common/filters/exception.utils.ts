@@ -36,6 +36,7 @@ const parseJWT = (token: string | null | undefined) => {
       sub: p.sub,
       username: p.username,
       roles: (p.roles ?? []) as string[],
+      permissions: (p.permissions ?? []) as string[],
     };
   } catch {
     return null;

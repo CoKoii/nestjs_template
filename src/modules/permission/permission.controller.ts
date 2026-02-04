@@ -19,8 +19,8 @@ export class PermissionController {
   // ----------------------------------------------------------------------
   // 根据token返回用户权限列表
   @Get("token")
-  getPermissionsByToken(@Req() req: { user: { userId: number } }) {
-    return this.permissionService.getPermissionsByToken(req.user.userId);
+  getPermissionsByToken(@Req() req: { user: { permissions: string[] } }) {
+    return this.permissionService.getPermissionsByToken(req.user.permissions);
   }
   // ----------------------------------------------------------------------
   // 创建权限

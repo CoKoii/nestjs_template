@@ -64,14 +64,8 @@ export class PermissionService {
   }
   // ----------------------------------------------------------------------
   // 根据token获取权限列表
-  async getPermissionsByToken(userId: number) {
-    const codes = await this.permissionRepository
-      .createQueryBuilder("permission")
-      .leftJoin("permission.roles", "role")
-      .leftJoin("role.users", "user")
-      .where("user.id = :userId", { userId })
-      .getMany();
-    return codes.map((permission) => permission.code);
+  getPermissionsByToken(permissions: string[] = []) {
+    return permissions;
   }
   // ----------------------------------------------------------------------
 }

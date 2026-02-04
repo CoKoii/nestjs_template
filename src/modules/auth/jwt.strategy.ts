@@ -17,11 +17,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     sub,
     username,
     roles,
+    permissions,
   }: {
     sub: number;
     username: string;
     roles: string[];
+    permissions: string[];
   }) {
-    return { userId: sub, username, roles };
+    return { userId: sub, username, roles, permissions };
   }
 }

@@ -11,7 +11,11 @@ export class ProfileService {
   ) {}
   // ----------------------------------------------------------------------
   // 根据token用户资料及其角色信息
-  async findOne(userId: number, roles: string[] = []) {
+  async findOne(
+    userId: number,
+    roles: string[] = [],
+    permissions: string[] = [],
+  ) {
     const profile = await this.profileRepository
       .createQueryBuilder("profile")
       .leftJoin("profile.user", "user")
@@ -25,6 +29,7 @@ export class ProfileService {
     return {
       ...profileData,
       roles,
+      permissions,
     };
   }
   // ----------------------------------------------------------------------
