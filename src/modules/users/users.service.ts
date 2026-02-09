@@ -6,11 +6,6 @@ import { QueryUsersDto } from "./dto/query-users.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { User } from "./entities/user.entity";
 
-type QueryUsersResponse = {
-  items: User[];
-  total: number;
-};
-
 @Injectable()
 export class UsersService {
   constructor(
@@ -18,7 +13,7 @@ export class UsersService {
   ) {}
   // ----------------------------------------------------------------------
   // 获取用户列表 - 分页查询 - nickname 模糊搜索
-  async findAll(query: QueryUsersDto): Promise<QueryUsersResponse> {
+  async findAll(query: QueryUsersDto) {
     const page = Math.max(1, Number(query.page) || 1);
     const pageSize = Math.max(1, Number(query.pageSize) || 10);
     const nickname = query.nickname?.trim();
@@ -42,7 +37,7 @@ export class UsersService {
   }
   // ----------------------------------------------------------------------
   // 更新用户信息 包括关联的 profile 和 roles
-  async update(id: number, updateUserDto: UpdateUserDto): Promise<string> {
+  async update(id: number, updateUserDto: UpdateUserDto) {
     const user = await this.userRepository.findOne({
       where: { id },
       relations: ["profile", "roles"],

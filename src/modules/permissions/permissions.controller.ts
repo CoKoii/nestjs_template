@@ -8,7 +8,6 @@ import {
   Query,
   Req,
 } from "@nestjs/common";
-import type { RequestWithUser } from "../../common/types/request-with-user.type";
 import { CreatePermissionDto } from "./dto/create-permission.dto";
 import { QueryPermissionsDto } from "./dto/query-permissions.dto";
 import { UpdatePermissionDto } from "./dto/update-permission.dto";
@@ -20,25 +19,19 @@ export class PermissionsController {
   // ----------------------------------------------------------------------
   // 根据token返回用户权限列表
   @Get("me")
-  getPermissionsByToken(
-    @Req() req: RequestWithUser,
-  ): ReturnType<PermissionsService["getPermissionsByToken"]> {
+  getPermissionsByToken(@Req() req: { user: { permissions: string[] } }) {
     return this.permissionService.getPermissionsByToken(req.user.permissions);
   }
   // ----------------------------------------------------------------------
   // 创建权限
   @Post()
-  create(
-    @Body() createPermissionDto: CreatePermissionDto,
-  ): ReturnType<PermissionsService["create"]> {
+  create(@Body() createPermissionDto: CreatePermissionDto) {
     return this.permissionService.create(createPermissionDto);
   }
   // ----------------------------------------------------------------------
   // 获取权限列表
   @Get()
-  findAll(
-    @Query() query: QueryPermissionsDto,
-  ): ReturnType<PermissionsService["findAll"]> {
+  findAll(@Query() query: QueryPermissionsDto) {
     return this.permissionService.findAll(query);
   }
   // ----------------------------------------------------------------------
@@ -47,7 +40,7 @@ export class PermissionsController {
   update(
     @Param("id") id: string,
     @Body() updatePermissionDto: UpdatePermissionDto,
-  ): ReturnType<PermissionsService["update"]> {
+  ) {
     return this.permissionService.update(+id, updatePermissionDto);
   }
   // ----------------------------------------------------------------------

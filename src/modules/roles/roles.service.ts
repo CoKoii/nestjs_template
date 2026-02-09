@@ -1,20 +1,11 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { isMySqlDuplicateEntryError } from "../../common/database/mysql-error.util";
+import { throwMySqlError } from "../../common/database/mysql-error.util";
 import { CreateRoleDto } from "./dto/create-role.dto";
 import { QueryRolesDto } from "./dto/query-roles.dto";
 import { UpdateRoleDto } from "./dto/update-role.dto";
 import { Role } from "./entities/role.entity";
-
-type QueryRolesResponse = {
-  items: Role[];
-  total: number;
-};
 
 @Injectable()
 export class RolesService {
@@ -24,7 +15,7 @@ export class RolesService {
   ) {}
   // ----------------------------------------------------------------------
   // 创建角色
-  async create(createRoleDto: CreateRoleDto): Promise<string> {
+  async create(createRoleDto: CreateRoleDto) {
     try {
       const role = {
         roleName: createRoleDto.roleName,
@@ -35,15 +26,12 @@ export class RolesService {
       await this.roleRepository.save(role);
       return "创建成功";
     } catch (error) {
-      if (isMySqlDuplicateEntryError(error)) {
-        throw new ConflictException("角色名称已存在");
-      }
-      throw error;
+      throwMySqlError(error, { unique: "角色名称已存在" });
     }
   }
   // ----------------------------------------------------------------------
   // 获取角色列表 - roleName 模糊搜索
-  async findAll(query: QueryRolesDto): Promise<QueryRolesResponse> {
+  async findAll(query: QueryRolesDto) {
     const roleName = query.roleName?.trim();
     const queryBuilder = this.roleRepository
       .createQueryBuilder("role")
@@ -62,7 +50,7 @@ export class RolesService {
   }
   // ----------------------------------------------------------------------
   // 更新角色
-  async update(id: number, updateRoleDto: UpdateRoleDto): Promise<string> {
+  async update(id: number, updateRoleDto: UpdateRoleDto) {
     try {
       const payload: Partial<Role> = { id };
       if (updateRoleDto.roleName !== undefined) {
@@ -84,10 +72,7 @@ export class RolesService {
       await this.roleRepository.save(role);
       return "更新成功";
     } catch (error) {
-      if (isMySqlDuplicateEntryError(error)) {
-        throw new ConflictException("角色名称已存在");
-      }
-      throw error;
+      throwMySqlError(error, { unique: "角色名称已存在" });
     }
   }
   // ----------------------------------------------------------------------

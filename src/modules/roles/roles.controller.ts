@@ -10,16 +10,14 @@ export class RolesController {
   // ----------------------------------------------------------------------
   // 创建角色
   @Post()
-  create(
-    @Body() createRoleDto: CreateRoleDto,
-  ): ReturnType<RolesService["create"]> {
+  create(@Body() createRoleDto: CreateRoleDto) {
     return this.roleService.create(createRoleDto);
   }
 
   // ----------------------------------------------------------------------
   // 获取角色列表
   @Get()
-  findAll(@Query() query: QueryRolesDto): ReturnType<RolesService["findAll"]> {
+  findAll(@Query() query: QueryRolesDto) {
     return this.roleService.findAll(query);
   }
 
@@ -27,10 +25,7 @@ export class RolesController {
   // 更新角色
   // @Roles("隐官")
   @Put(":id")
-  update(
-    @Param("id") id: string,
-    @Body() updateRoleDto: UpdateRoleDto,
-  ): ReturnType<RolesService["update"]> {
+  update(@Param("id") id: string, @Body() updateRoleDto: UpdateRoleDto) {
     return this.roleService.update(+id, updateRoleDto);
   }
   // ----------------------------------------------------------------------

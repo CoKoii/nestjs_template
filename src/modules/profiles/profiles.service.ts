@@ -3,11 +3,6 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import { Profile } from "./entities/profile.entity";
 
-type CurrentProfile = Omit<Profile, "user"> & {
-  roles: string[];
-  permissions: string[];
-};
-
 @Injectable()
 export class ProfilesService {
   constructor(
@@ -20,7 +15,7 @@ export class ProfilesService {
     userId: number,
     roles: string[] = [],
     permissions: string[] = [],
-  ): Promise<CurrentProfile> {
+  ) {
     const profile = await this.profileRepository
       .createQueryBuilder("profile")
       .leftJoin("profile.user", "user")

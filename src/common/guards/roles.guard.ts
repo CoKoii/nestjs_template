@@ -6,7 +6,6 @@ import {
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { ROLES_KEY } from "../decorators/roles.decorator";
-import type { RequestWithUser } from "../types/request-with-user.type";
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -17,7 +16,9 @@ export class RolesGuard implements CanActivate {
       context.getClass(),
     ]);
     if (!roles?.length) return true;
-    const req = context.switchToHttp().getRequest<RequestWithUser>();
+    const req = context
+      .switchToHttp()
+      .getRequest<{ user?: { roles?: string[] } }>();
     const userRoles = req.user?.roles ?? [];
     if (userRoles.some((role: string) => roles.includes(role))) {
       return true;

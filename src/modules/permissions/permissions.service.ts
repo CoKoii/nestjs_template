@@ -1,20 +1,11 @@
-import {
-  ConflictException,
-  Injectable,
-  NotFoundException,
-} from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { isMySqlDuplicateEntryError } from "../../common/database/mysql-error.util";
+import { throwMySqlError } from "../../common/database/mysql-error.util";
 import { CreatePermissionDto } from "./dto/create-permission.dto";
 import type { QueryPermissionsDto } from "./dto/query-permissions.dto";
 import { UpdatePermissionDto } from "./dto/update-permission.dto";
 import { Permission } from "./entities/permission.entity";
-
-type QueryPermissionsResponse = {
-  items: Permission[];
-  total: number;
-};
 
 @Injectable()
 export class PermissionsService {
@@ -24,22 +15,19 @@ export class PermissionsService {
   ) {}
   // ----------------------------------------------------------------------
   // 创建权限
-  async create(createPermissionDto: CreatePermissionDto): Promise<string> {
+  async create(createPermissionDto: CreatePermissionDto) {
     try {
       await this.permissionRepository.save(createPermissionDto);
       return "创建成功";
     } catch (error) {
-      if (isMySqlDuplicateEntryError(error)) {
-        throw new ConflictException(
-          `权限码 "${createPermissionDto.code}" 已存在`,
-        );
-      }
-      throw error;
+      throwMySqlError(error, {
+        unique: `权限码 "${createPermissionDto.code}" 已存在`,
+      });
     }
   }
   // ----------------------------------------------------------------------
   // 获取权限列表 - code 模糊搜索
-  async findAll(query: QueryPermissionsDto): Promise<QueryPermissionsResponse> {
+  async findAll(query: QueryPermissionsDto) {
     const code = query.code?.trim();
     const queryBuilder = this.permissionRepository
       .createQueryBuilder("permission")
@@ -57,10 +45,7 @@ export class PermissionsService {
   }
   // ----------------------------------------------------------------------
   // 更新权限
-  async update(
-    id: number,
-    updatePermissionDto: UpdatePermissionDto,
-  ): Promise<string> {
+  async update(id: number, updatePermissionDto: UpdatePermissionDto) {
     try {
       const payload: Partial<Permission> = { id };
       if (updatePermissionDto.code !== undefined) {
@@ -77,17 +62,14 @@ export class PermissionsService {
       await this.permissionRepository.save(permission);
       return "更新成功";
     } catch (error) {
-      if (isMySqlDuplicateEntryError(error)) {
-        throw new ConflictException(
-          `权限码 "${updatePermissionDto.code}" 已存在`,
-        );
-      }
-      throw error;
+      throwMySqlError(error, {
+        unique: `权限码 "${updatePermissionDto.code}" 已存在`,
+      });
     }
   }
   // ----------------------------------------------------------------------
   // 根据token获取权限列表
-  getPermissionsByToken(permissions: string[] = []): string[] {
+  getPermissionsByToken(permissions: string[] = []) {
     return permissions;
   }
   // ----------------------------------------------------------------------

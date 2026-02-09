@@ -1,5 +1,4 @@
 import { Controller, Get, Req } from "@nestjs/common";
-import type { RequestWithUser } from "../../common/types/request-with-user.type";
 import { ProfilesService } from "./profiles.service";
 
 @Controller("profiles")
@@ -8,7 +7,12 @@ export class ProfilesController {
   // ----------------------------------------------------------------------
   // 根据token获取当前用户信息
   @Get("me")
-  findOne(@Req() req: RequestWithUser): ReturnType<ProfilesService["findOne"]> {
+  findOne(
+    @Req()
+    req: {
+      user: { userId: number; roles: string[]; permissions: string[] };
+    },
+  ) {
     return this.profileService.findOne(
       req.user.userId,
       req.user.roles,

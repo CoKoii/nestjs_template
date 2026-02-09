@@ -9,16 +9,13 @@ export class UsersController {
   // ----------------------------------------------------------------------
   // 获取用户列表
   @Get()
-  findAll(@Query() query: QueryUsersDto): ReturnType<UsersService["findAll"]> {
+  findAll(@Query() query: QueryUsersDto) {
     return this.userService.findAll(query);
   }
   // ----------------------------------------------------------------------
   // 更新用户信息
   @Put(":id")
-  update(
-    @Param("id") id: string,
-    @Body() updateUserDto: UpdateUserDto,
-  ): ReturnType<UsersService["update"]> {
+  update(@Param("id") id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.userService.update(+id, updateUserDto);
   }
   // ----------------------------------------------------------------------

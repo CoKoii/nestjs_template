@@ -7,13 +7,10 @@ import { JwtService } from "@nestjs/jwt";
 import { InjectRepository } from "@nestjs/typeorm";
 import * as argon2 from "argon2";
 import { Repository } from "typeorm";
-import type { JwtPayload } from "../../common/types/jwt-payload.type";
 import { Profile } from "../profiles/entities/profile.entity";
 import { User } from "../users/entities/user.entity";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
-
-type AuthTokenResponse = { accessToken: string };
 
 @Injectable()
 export class AuthService {
@@ -22,7 +19,7 @@ export class AuthService {
     @InjectRepository(Profile) private readonly profiles: Repository<Profile>,
     private readonly jwtService: JwtService,
   ) {}
-  private signToken = async (user: User): Promise<string> => {
+  private signToken = async (user: User) => {
     const activeRoles = user.roles?.filter((role) => role.status) ?? [];
     const roles = activeRoles.map((role) => role.roleName);
     const permissions = Array.from(
@@ -33,17 +30,16 @@ export class AuthService {
           .map((permission) => permission.code),
       ),
     );
-    const payload: JwtPayload = {
+    return this.jwtService.signAsync({
       sub: user.id,
       username: user.username,
       roles,
       permissions,
-    };
-    return this.jwtService.signAsync(payload);
+    });
   };
   // ----------------------------------------------------------------------
   // 用户注册 密码加密
-  async register(dto: RegisterDto): Promise<AuthTokenResponse> {
+  async register(dto: RegisterDto) {
     if (dto.password !== dto.confirmPassword)
       throw new BadRequestException("两次输入的密码不一致");
     if (await this.users.findOneBy({ username: dto.username }))
@@ -63,7 +59,7 @@ export class AuthService {
 
   // ----------------------------------------------------------------------
   // 用户登录 密码验证
-  async login(dto: LoginDto): Promise<AuthTokenResponse> {
+  async login(dto: LoginDto) {
     const user = await this.users.findOne({
       where: { username: dto.username },
       relations: ["roles", "roles.permissions"],

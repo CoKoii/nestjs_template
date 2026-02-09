@@ -1,7 +1,6 @@
 import { HttpException } from "@nestjs/common";
 import type { Request } from "express";
 import { QueryFailedError } from "typeorm";
-import type { JwtPayload } from "../types/jwt-payload.type";
 import { formatTimestamp } from "../utils/timestamp.util";
 
 const DEFAULT_MESSAGE = "Internal Server Error";
@@ -33,9 +32,7 @@ const toStringArray = (value: unknown): string[] =>
     ? value.filter((item): item is string => typeof item === "string")
     : [];
 
-const parseJWT = (
-  authorization: string | string[] | null | undefined,
-): JwtPayload | null => {
+const parseJWT = (authorization: string | string[] | null | undefined) => {
   const token =
     typeof authorization === "string" ? authorization : authorization?.[0];
   if (!token) return null;
