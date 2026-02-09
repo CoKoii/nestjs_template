@@ -3,7 +3,7 @@ import * as dotenv from "dotenv";
 import * as fs from "fs";
 import * as Joi from "joi";
 import { DataSource, type DataSourceOptions } from "typeorm";
-import { ConfigEnum } from "./src/enum/config";
+import { ConfigEnum } from "./src/common/constants/config.enum";
 
 const entitiesDir = [
   __dirname +

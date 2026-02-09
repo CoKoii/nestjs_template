@@ -5,27 +5,19 @@ import {
   NestInterceptor,
 } from "@nestjs/common";
 import { Observable, map } from "rxjs";
+import { formatTimestamp } from "../utils/timestamp.util";
 
 @Injectable()
 export class ResponseInterceptor implements NestInterceptor {
   intercept(
-    context: ExecutionContext,
+    _: ExecutionContext,
     next: CallHandler<unknown>,
   ): Observable<unknown> {
     return next.handle().pipe(
       map((data) => ({
         code: 0,
         data,
-        timestamp: new Date().toLocaleString("zh-CN", {
-          timeZone: "Asia/Shanghai",
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-          hour12: false,
-        }),
+        timestamp: formatTimestamp(),
       })),
     );
   }

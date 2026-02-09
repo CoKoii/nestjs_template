@@ -8,7 +8,7 @@ import {
 import winston from "winston";
 import DailyRotateFile from "winston-daily-rotate-file";
 import { Console } from "winston/lib/winston/transports";
-import { LogEnum } from "../../enum/config";
+import { LogEnum } from "../../common/constants/config.enum";
 
 const fileFormat = winston.format.combine(
   winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),

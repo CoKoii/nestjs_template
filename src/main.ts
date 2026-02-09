@@ -1,9 +1,21 @@
 import { BadRequestException, Logger, ValidationPipe } from "@nestjs/common";
 import { HttpAdapterHost, NestFactory } from "@nestjs/core";
+import type { ValidationError } from "class-validator";
 import { WINSTON_MODULE_NEST_PROVIDER } from "nest-winston";
 import { AppModule } from "./app.module";
 import { AllExceptionFilter } from "./common/filters/all-exception.filter";
 import { ResponseInterceptor } from "./common/interceptors/response.interceptor";
+
+const resolveFirstValidationMessage = (error: ValidationError): string => {
+  if (error.constraints) {
+    const [message] = Object.values(error.constraints);
+    return message ?? "参数校验失败";
+  }
+  const [firstChild] = error.children ?? [];
+  return firstChild
+    ? resolveFirstValidationMessage(firstChild)
+    : "参数校验失败";
+};
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -16,15 +28,13 @@ async function bootstrap() {
   app.useGlobalPipes(
     new ValidationPipe({
       stopAtFirstError: true,
-      exceptionFactory: (errors) => {
-        const getFirstError = (err: any): string => {
-          if (err.constraints)
-            return Object.values(err.constraints)[0] as string;
-          return err.children?.length
-            ? getFirstError(err.children[0])
-            : "参数校验失败";
-        };
-        return new BadRequestException(getFirstError(errors[0]));
+      exceptionFactory: (errors: ValidationError[]) => {
+        if (!errors.length) {
+          return new BadRequestException("参数校验失败");
+        }
+        return new BadRequestException(
+          resolveFirstValidationMessage(errors[0]),
+        );
       },
     }),
   );

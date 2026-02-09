@@ -8,10 +8,10 @@ import { JwtAuthGuard } from "./common/guards/jwt-auth.guard";
 import { RolesGuard } from "./common/guards/roles.guard";
 import { LoggerModule } from "./common/logger/logger.module";
 import { AuthModule } from "./modules/auth/auth.module";
-import { PermissionModule } from "./modules/permission/permission.module";
-import { ProfileModule } from "./modules/profile/profile.module";
-import { RoleModule } from "./modules/role/role.module";
-import { UserModule } from "./modules/user/user.module";
+import { PermissionsModule } from "./modules/permissions/permissions.module";
+import { ProfilesModule } from "./modules/profiles/profiles.module";
+import { RolesModule } from "./modules/roles/roles.module";
+import { UsersModule } from "./modules/users/users.module";
 
 const envFilePath = `.env.${process.env.NODE_ENV || "development"}`;
 @Global()
@@ -25,11 +25,11 @@ const envFilePath = `.env.${process.env.NODE_ENV || "development"}`;
     }),
     TypeOrmModule.forRoot(connectionParams),
     LoggerModule,
-    UserModule,
+    UsersModule,
     AuthModule,
-    ProfileModule,
-    RoleModule,
-    PermissionModule,
+    ProfilesModule,
+    RolesModule,
+    PermissionsModule,
   ],
   providers: [
     Logger,

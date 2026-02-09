@@ -1,42 +1,61 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment,@typescript-eslint/no-unsafe-member-access */
 import { HttpException } from "@nestjs/common";
 import type { Request } from "express";
 import { QueryFailedError } from "typeorm";
+import type { JwtPayload } from "../types/jwt-payload.type";
+import { formatTimestamp } from "../utils/timestamp.util";
 
 const DEFAULT_MESSAGE = "Internal Server Error";
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
 const toMessage = (raw: unknown) =>
   raw == null
     ? DEFAULT_MESSAGE
     : typeof raw === "string"
       ? raw
-      : (JSON.stringify(raw) ?? DEFAULT_MESSAGE);
+      : Array.isArray(raw)
+        ? raw.map((item) => String(item)).join(", ")
+        : (JSON.stringify(raw) ?? DEFAULT_MESSAGE);
 
 export const resolveExceptionMessage = (err: unknown): string => {
   if (err instanceof QueryFailedError) return err.message;
   if (err instanceof HttpException) {
     const responseBody = err.getResponse();
-    const raw =
-      typeof responseBody === "string"
-        ? responseBody
-        : responseBody && typeof responseBody === "object"
-          ? (responseBody as { message?: unknown }).message
-          : undefined;
+    const raw = isRecord(responseBody) ? responseBody["message"] : responseBody;
     return toMessage(raw);
   }
   return err instanceof Error ? err.message : DEFAULT_MESSAGE;
 };
 
-const parseJWT = (token: string | null | undefined) => {
+const toStringArray = (value: unknown): string[] =>
+  Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+
+const parseJWT = (
+  authorization: string | string[] | null | undefined,
+): JwtPayload | null => {
+  const token =
+    typeof authorization === "string" ? authorization : authorization?.[0];
   if (!token) return null;
   try {
     const tokenStr = token.startsWith("Bearer ") ? token.slice(7) : token;
     const parts = tokenStr.split(".");
-    const p = JSON.parse(Buffer.from(parts[1], "base64").toString());
+    if (parts.length < 2) return null;
+    const payloadBase64 = parts[1].replaceAll("-", "+").replaceAll("_", "/");
+    const payload = JSON.parse(
+      Buffer.from(payloadBase64, "base64").toString("utf8"),
+    ) as unknown;
+    if (!isRecord(payload)) return null;
+    const sub = payload["sub"];
+    const username = payload["username"];
+    if (typeof sub !== "number" || typeof username !== "string") return null;
     return {
-      sub: p.sub,
-      username: p.username,
-      roles: (p.roles ?? []) as string[],
-      permissions: (p.permissions ?? []) as string[],
+      sub,
+      username,
+      roles: toStringArray(payload["roles"]),
+      permissions: toStringArray(payload["permissions"]),
     };
   } catch {
     return null;
@@ -54,7 +73,7 @@ export const buildExceptionLog = (
   ip: request.ip,
   body: (request.body as unknown) ?? null,
   token: request.headers["authorization"] ?? null,
-  tokenInfo: parseJWT(request.headers["authorization"]),
+  tokenInfo: parseJWT(request.headers["authorization"] ?? null),
   statusCode,
   message,
   exception: error?.name ?? "UnknownException",
@@ -68,14 +87,5 @@ export const buildExceptionResponse = (
   code: statusCode,
   message,
   data: null,
-  timestamp: new Date().toLocaleString("zh-CN", {
-    timeZone: "Asia/Shanghai",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }),
+  timestamp: formatTimestamp(),
 });

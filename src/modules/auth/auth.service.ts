@@ -7,10 +7,14 @@ import { JwtService } from "@nestjs/jwt";
 import { InjectRepository } from "@nestjs/typeorm";
 import * as argon2 from "argon2";
 import { Repository } from "typeorm";
-import { Profile } from "../profile/entities/profile.entity";
-import { User } from "../user/entities/user.entity";
-import { LoginUserDto } from "./dto/login-user.dto";
-import { RegisterUserDto } from "./dto/register-user.dto";
+import type { JwtPayload } from "../../common/types/jwt-payload.type";
+import { Profile } from "../profiles/entities/profile.entity";
+import { User } from "../users/entities/user.entity";
+import { LoginDto } from "./dto/login.dto";
+import { RegisterDto } from "./dto/register.dto";
+
+type AuthTokenResponse = { accessToken: string };
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -18,7 +22,7 @@ export class AuthService {
     @InjectRepository(Profile) private readonly profiles: Repository<Profile>,
     private readonly jwtService: JwtService,
   ) {}
-  private signToken = async (user: User) => {
+  private signToken = async (user: User): Promise<string> => {
     const activeRoles = user.roles?.filter((role) => role.status) ?? [];
     const roles = activeRoles.map((role) => role.roleName);
     const permissions = Array.from(
@@ -29,16 +33,17 @@ export class AuthService {
           .map((permission) => permission.code),
       ),
     );
-    return this.jwtService.signAsync({
+    const payload: JwtPayload = {
       sub: user.id,
       username: user.username,
       roles,
       permissions,
-    });
+    };
+    return this.jwtService.signAsync(payload);
   };
   // ----------------------------------------------------------------------
   // 用户注册 密码加密
-  async register(dto: RegisterUserDto) {
+  async register(dto: RegisterDto): Promise<AuthTokenResponse> {
     if (dto.password !== dto.confirmPassword)
       throw new BadRequestException("两次输入的密码不一致");
     if (await this.users.findOneBy({ username: dto.username }))
@@ -58,7 +63,7 @@ export class AuthService {
 
   // ----------------------------------------------------------------------
   // 用户登录 密码验证
-  async login(dto: LoginUserDto) {
+  async login(dto: LoginDto): Promise<AuthTokenResponse> {
     const user = await this.users.findOne({
       where: { username: dto.username },
       relations: ["roles", "roles.permissions"],
