@@ -71,9 +71,9 @@ export class AuthService {
     if (!user || typeof user.password !== "string" || !user.password.trim()) {
       throw new ForbiddenException("用户名或密码错误");
     }
-
     if (!(await argon2.verify(user.password, dto.password)))
       throw new ForbiddenException("用户名或密码错误");
+    if (!user.status) throw new ForbiddenException("账户已被禁用");
     return { accessToken: await this.signToken(user) };
   }
   // ----------------------------------------------------------------------
