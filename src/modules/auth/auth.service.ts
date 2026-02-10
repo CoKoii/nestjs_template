@@ -60,11 +60,19 @@ export class AuthService {
   // ----------------------------------------------------------------------
   // 用户登录 密码验证
   async login(dto: LoginDto) {
-    const user = await this.users.findOne({
-      where: { username: dto.username },
-      relations: ["roles", "roles.permissions"],
-    });
-    if (!user || !(await argon2.verify(user.password, dto.password)))
+    const user = await this.users
+      .createQueryBuilder("user")
+      .addSelect("user.password")
+      .leftJoinAndSelect("user.roles", "role")
+      .leftJoinAndSelect("role.permissions", "permission")
+      .where("user.username = :username", { username: dto.username })
+      .getOne();
+
+    if (!user || typeof user.password !== "string" || !user.password.trim()) {
+      throw new ForbiddenException("用户名或密码错误");
+    }
+
+    if (!(await argon2.verify(user.password, dto.password)))
       throw new ForbiddenException("用户名或密码错误");
     return { accessToken: await this.signToken(user) };
   }

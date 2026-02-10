@@ -20,7 +20,6 @@ export class UsersService {
     const queryBuilder = this.userRepository
       .createQueryBuilder("user")
       .distinct(true)
-      .select(["user.id", "user.username"])
       .leftJoinAndSelect("user.profile", "profile")
       .leftJoinAndSelect("user.roles", "role")
       .leftJoinAndSelect("role.permissions", "permission")

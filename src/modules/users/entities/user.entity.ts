@@ -17,7 +17,7 @@ export class User {
   id: number;
   @Column({ comment: "用户名", unique: true })
   username: string;
-  @Column({ comment: "用户密码" })
+  @Column({ comment: "用户密码", select: false })
   password: string;
   @CreateDateColumn({ comment: "创建时间" })
   createdAt: Date;
