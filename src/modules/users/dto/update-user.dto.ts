@@ -1,7 +1,8 @@
 import { Type } from "class-transformer";
 import {
+  IsArray,
   IsBoolean,
-  IsNumber,
+  IsInt,
   IsOptional,
   ValidateNested,
 } from "class-validator";
@@ -14,7 +15,9 @@ export class UpdateUserDto {
   profile?: UpdateProfileDto;
 
   @IsOptional()
-  @IsNumber({}, { each: true, message: "角色ID必须为数字数组" })
+  @IsArray({ message: "角色ID必须为数组" })
+  @Type(() => Number)
+  @IsInt({ each: true, message: "角色ID必须为整数数组" })
   roles?: number[];
 
   @IsOptional()
