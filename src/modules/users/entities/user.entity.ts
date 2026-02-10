@@ -19,6 +19,8 @@ export class User {
   username: string;
   @Column({ comment: "用户密码", select: false })
   password: string;
+  @Column({ comment: "账户状态", default: true })
+  status: boolean;
   @CreateDateColumn({ comment: "创建时间" })
   createdAt: Date;
   @UpdateDateColumn({ comment: "更新时间" })

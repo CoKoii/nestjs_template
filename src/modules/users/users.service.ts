@@ -42,13 +42,14 @@ export class UsersService {
       relations: ["profile", "roles"],
     });
     if (!user) throw new NotFoundException("用户不存在");
-    if (user.profile && updateUserDto.profile) {
-      Object.assign(user.profile, updateUserDto.profile);
+
+    const { profile, roles, ...rest } = updateUserDto;
+    if (profile && user.profile) {
+      Object.assign(user.profile, profile);
     }
-    if (Array.isArray(updateUserDto.roles)) {
-      user.roles = updateUserDto.roles.map(
-        (roleId) => ({ id: roleId }) as Role,
-      );
+    Object.assign(user, rest);
+    if (roles !== undefined) {
+      user.roles = roles.map((roleId) => ({ id: roleId }) as Role);
     }
     await this.userRepository.save(user);
     return "更新成功";
