@@ -21,6 +21,14 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
   app.setGlobalPrefix("api/v1");
+  const isProduction = process.env.NODE_ENV === "production";
+  const corsOrigins =
+    process.env.CORS_ORIGINS?.split(",")
+      .map((item) => item.trim())
+      .filter(Boolean) ?? [];
+  app.enableCors({
+    origin: isProduction ? corsOrigins : true,
+  });
   app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalFilters(
     new AllExceptionFilter(new Logger(), app.get(HttpAdapterHost)),

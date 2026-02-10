@@ -1,4 +1,10 @@
-import { Equals, IsBoolean, IsString, Length } from "class-validator";
+import {
+  Equals,
+  IsBoolean,
+  IsNotEmpty,
+  IsString,
+  Length,
+} from "class-validator";
 
 export class RegisterDto {
   @IsString({ message: "用户名必须为字符串" })
@@ -8,11 +14,8 @@ export class RegisterDto {
   @IsString({ message: "密码必须为字符串" })
   @Length(6, 20, { message: "密码长度应在$constraint1到$constraint2之间" })
   password: string;
-
-  @IsString({ message: "确认密码必须为字符串" })
-  @Length(6, 20, { message: "确认密码长度应在$constraint1到$constraint2之间" })
+  @IsNotEmpty({ message: "二次确认密码不能为空" })
   confirmPassword: string;
-
   @IsBoolean({ message: "是否同意协议必须为布尔值" })
   @Equals(true, { message: "请同意用户协议和隐私政策" })
   agreePolicy: boolean;
