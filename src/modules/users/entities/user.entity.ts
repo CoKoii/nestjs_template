@@ -1,10 +1,12 @@
 import {
   Column,
+  CreateDateColumn,
   Entity,
   JoinTable,
   ManyToMany,
   OneToOne,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from "typeorm";
 import { Profile } from "../../profiles/entities/profile.entity";
 import { Role } from "../../roles/entities/role.entity";
@@ -17,6 +19,10 @@ export class User {
   username: string;
   @Column({ comment: "用户密码" })
   password: string;
+  @CreateDateColumn({ comment: "创建时间" })
+  createdAt: Date;
+  @UpdateDateColumn({ comment: "更新时间" })
+  updatedAt: Date;
   @OneToOne(() => Profile, (profile) => profile.user, { cascade: true })
   profile: Profile;
   @ManyToMany(() => Role, (role) => role.users)

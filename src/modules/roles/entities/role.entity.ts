@@ -1,9 +1,11 @@
 import {
   Column,
+  CreateDateColumn,
   Entity,
   JoinTable,
   ManyToMany,
   PrimaryGeneratedColumn,
+  UpdateDateColumn,
 } from "typeorm";
 import { Permission } from "../../permissions/entities/permission.entity";
 import { User } from "../../users/entities/user.entity";
@@ -18,6 +20,10 @@ export class Role {
   description?: string;
   @Column({ comment: "状态", default: true, nullable: true })
   status?: boolean;
+  @CreateDateColumn({ comment: "创建时间" })
+  createdAt: Date;
+  @UpdateDateColumn({ comment: "更新时间" })
+  updatedAt: Date;
   @ManyToMany(() => User, (user) => user.roles)
   users: User[];
   @ManyToMany(() => Permission, (permission) => permission.roles)
