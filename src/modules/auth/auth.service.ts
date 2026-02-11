@@ -40,7 +40,7 @@ export class AuthService {
   // ----------------------------------------------------------------------
   // 用户注册 密码加密
   async register(dto: RegisterDto) {
-    if (dto.password !== dto.confirmPassword)
+    if (dto.confirmPassword && dto.password !== dto.confirmPassword)
       throw new BadRequestException("两次输入的密码不一致");
     if (await this.users.findOneBy({ username: dto.username }))
       throw new BadRequestException("当前用户名已被注册");
