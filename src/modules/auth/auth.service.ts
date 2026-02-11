@@ -67,8 +67,10 @@ export class AuthService {
       .leftJoinAndSelect("role.permissions", "permission")
       .where("user.username = :username", { username: dto.username })
       .getOne();
-
-    if (!user || typeof user.password !== "string" || !user.password.trim()) {
+    if (!user) {
+      throw new ForbiddenException("用户不存在");
+    }
+    if (typeof user.password !== "string" || !user.password.trim()) {
       throw new ForbiddenException("用户名或密码错误");
     }
     if (!(await argon2.verify(user.password, dto.password)))
