@@ -2,7 +2,8 @@ import { ConfigService } from "@nestjs/config";
 import { EnvKey } from "./env.keys";
 import { parseCommaSeparatedValue, parseNumber } from "./env.utils";
 
-export const API_GLOBAL_PREFIX = "api/v1";
+export const API_GLOBAL_PREFIX = "api";
+export const API_VERSION_PREFIX = "v";
 
 export const isProductionEnvironment = (configService: ConfigService) =>
   configService.get<string>(EnvKey.NODE_ENV) === "production";

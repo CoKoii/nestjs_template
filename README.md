@@ -78,24 +78,43 @@ pnpm test:e2e
 
 ## API 约定
 
-- 全局前缀：`/api/v1`
+- 全局前缀：`/api`
+- 默认版本：不在 URL 中显式出现
+- 版本控制：默认接口直接走 `/api/...`；只有新增版本接口时再显式写 `@Version('2')`，路径才会变成 `/api/v2/...`
 - 成功响应统一为 `{ code, data, timestamp }`
 - 异常响应统一为 `{ code, message, data, timestamp }`
 
 当前模板内置接口：
 
-- `POST /api/v1/auth/login`
-- `POST /api/v1/auth/register`
-- `GET /api/v1/users`
-- `PUT /api/v1/users/:id`
-- `POST /api/v1/roles`
-- `GET /api/v1/roles`
-- `PUT /api/v1/roles/:id`
-- `GET /api/v1/permissions/me`
-- `POST /api/v1/permissions`
-- `GET /api/v1/permissions`
-- `PUT /api/v1/permissions/:id`
-- `GET /api/v1/profiles/me`
+- `POST /api/auth/login`
+- `POST /api/auth/register`
+- `GET /api/users`
+- `PUT /api/users/:id`
+- `POST /api/roles`
+- `GET /api/roles`
+- `PUT /api/roles/:id`
+- `GET /api/permissions/me`
+- `POST /api/permissions`
+- `GET /api/permissions`
+- `PUT /api/permissions/:id`
+- `GET /api/profiles/me`
+
+后续新增版本时示例：
+
+```ts
+@Version("2")
+@Get("me")
+findMeV2() {
+  return this.profileService.findOneV2();
+}
+```
+
+对应访问路径：
+
+```text
+GET /api/profiles/me
+GET /api/v2/profiles/me
+```
 
 ## 开发建议
 
