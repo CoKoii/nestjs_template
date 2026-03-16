@@ -18,25 +18,25 @@ import { PermissionsService } from "./permissions.service";
 @Controller("permissions")
 export class PermissionsController {
   constructor(private readonly permissionService: PermissionsService) {}
-  // ----------------------------------------------------------------------
-  // 根据token返回用户权限列表
+
+  // 根据 token 返回当前用户权限列表
   @Get("me")
   getPermissionsByToken(@CurrentUser() user: AuthUser) {
     return this.permissionService.getPermissionsByToken(user.permissions);
   }
-  // ----------------------------------------------------------------------
+
   // 创建权限
   @Post()
   create(@Body() createPermissionDto: CreatePermissionDto) {
     return this.permissionService.create(createPermissionDto);
   }
-  // ----------------------------------------------------------------------
+
   // 获取权限列表
   @Get()
   findAll(@Query() query: QueryPermissionsDto) {
     return this.permissionService.findAll(query);
   }
-  // ----------------------------------------------------------------------
+
   // 更新权限
   @Put(":id")
   update(
@@ -45,5 +45,4 @@ export class PermissionsController {
   ) {
     return this.permissionService.update(id, updatePermissionDto);
   }
-  // ----------------------------------------------------------------------
 }

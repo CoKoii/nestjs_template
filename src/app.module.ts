@@ -1,8 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { resolveEnvFilePaths } from "./config/env.utils";
-import { validationSchema } from "./config/env.validation";
+import { resolveEnvFilePaths, validationSchema } from "./config/env.config";
 import { createTypeOrmModuleOptions } from "./config/typeorm.config";
 import { CoreModule } from "./core/core.module";
 import { UserSystemModule } from "./modules/user-system/user-system.module";

@@ -19,7 +19,8 @@ export class AuthService {
     @InjectRepository(Profile) private readonly profiles: Repository<Profile>,
     private readonly jwtService: JwtService,
   ) {}
-  private signToken = async (user: User) => {
+
+  private async signToken(user: User) {
     const activeRoles = user.roles?.filter((role) => role.status) ?? [];
     const roles = activeRoles.map((role) => role.roleName);
     const permissions = Array.from(
@@ -36,9 +37,8 @@ export class AuthService {
       roles,
       permissions,
     });
-  };
-  // ----------------------------------------------------------------------
-  // 用户注册 密码加密
+  }
+
   async register(dto: RegisterDto) {
     if (dto.confirmPassword && dto.password !== dto.confirmPassword)
       throw new BadRequestException("两次输入的密码不一致");
@@ -57,8 +57,6 @@ export class AuthService {
     return { accessToken: await this.signToken(user) };
   }
 
-  // ----------------------------------------------------------------------
-  // 用户登录 密码验证
   async login(dto: LoginDto) {
     const user = await this.users
       .createQueryBuilder("user")
@@ -78,5 +76,4 @@ export class AuthService {
     if (!user.status) throw new ForbiddenException("账户已被禁用");
     return { accessToken: await this.signToken(user) };
   }
-  // ----------------------------------------------------------------------
 }

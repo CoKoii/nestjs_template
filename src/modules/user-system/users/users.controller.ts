@@ -14,13 +14,13 @@ import { UsersService } from "./users.service";
 @Controller("users")
 export class UsersController {
   constructor(private readonly userService: UsersService) {}
-  // ----------------------------------------------------------------------
+
   // 获取用户列表
   @Get()
   findAll(@Query() query: QueryUsersDto) {
     return this.userService.findAll(query);
   }
-  // ----------------------------------------------------------------------
+
   // 更新用户信息
   @Put(":id")
   update(
@@ -29,5 +29,4 @@ export class UsersController {
   ) {
     return this.userService.update(id, updateUserDto);
   }
-  // ----------------------------------------------------------------------
 }

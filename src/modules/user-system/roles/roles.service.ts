@@ -36,8 +36,6 @@ export class RolesService {
     return payload;
   }
 
-  // ----------------------------------------------------------------------
-  // 创建角色
   async create(createRoleDto: CreateRoleDto) {
     try {
       await this.roleRepository.save(
@@ -51,8 +49,7 @@ export class RolesService {
       });
     }
   }
-  // ----------------------------------------------------------------------
-  // 获取角色列表 - roleName 模糊搜索
+
   async findAll(query: QueryRolesDto) {
     const roleName = query.roleName?.trim();
     const queryBuilder = this.roleRepository
@@ -70,8 +67,7 @@ export class RolesService {
       total,
     };
   }
-  // ----------------------------------------------------------------------
-  // 更新角色
+
   async update(id: number, updateRoleDto: UpdateRoleDto) {
     try {
       const role = await this.roleRepository.preload({
@@ -88,5 +84,4 @@ export class RolesService {
       });
     }
   }
-  // ----------------------------------------------------------------------
 }

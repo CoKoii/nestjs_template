@@ -13,8 +13,7 @@ export class PermissionsService {
     @InjectRepository(Permission)
     private readonly permissionRepository: Repository<Permission>,
   ) {}
-  // ----------------------------------------------------------------------
-  // 创建权限
+
   async create(createPermissionDto: CreatePermissionDto) {
     try {
       await this.permissionRepository.save(createPermissionDto);
@@ -25,8 +24,7 @@ export class PermissionsService {
       });
     }
   }
-  // ----------------------------------------------------------------------
-  // 获取权限列表 - code 模糊搜索
+
   async findAll(query: QueryPermissionsDto) {
     const code = query.code?.trim();
     const queryBuilder = this.permissionRepository
@@ -43,21 +41,13 @@ export class PermissionsService {
       total,
     };
   }
-  // ----------------------------------------------------------------------
-  // 更新权限
+
   async update(id: number, updatePermissionDto: UpdatePermissionDto) {
     try {
-      const payload: Partial<Permission> = { id };
-      if (updatePermissionDto.code !== undefined) {
-        payload.code = updatePermissionDto.code;
-      }
-      if (updatePermissionDto.description !== undefined) {
-        payload.description = updatePermissionDto.description;
-      }
-      if (updatePermissionDto.status !== undefined) {
-        payload.status = updatePermissionDto.status;
-      }
-      const permission = await this.permissionRepository.preload(payload);
+      const permission = await this.permissionRepository.preload({
+        id,
+        ...updatePermissionDto,
+      });
       if (!permission) throw new NotFoundException("权限不存在");
       await this.permissionRepository.save(permission);
       return "更新成功";
@@ -70,10 +60,8 @@ export class PermissionsService {
       });
     }
   }
-  // ----------------------------------------------------------------------
-  // 根据token获取权限列表
+
   getPermissionsByToken(permissions: string[] = []) {
     return permissions;
   }
-  // ----------------------------------------------------------------------
 }

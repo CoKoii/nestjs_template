@@ -3,8 +3,7 @@ import { utilities, type WinstonModuleOptions } from "nest-winston";
 import winston from "winston";
 import DailyRotateFile from "winston-daily-rotate-file";
 import { Console } from "winston/lib/winston/transports";
-import { LogKey } from "./env.keys";
-import { parseBoolean } from "./env.utils";
+import { ENV, parseBoolean } from "./env.config";
 
 const fileFormat = winston.format.combine(
   winston.format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
@@ -27,8 +26,8 @@ const createDailyTransport = (filename: string, level: string) =>
 export const createLoggerOptions = (
   configService: ConfigService,
 ): WinstonModuleOptions => {
-  const level = configService.get<string>(LogKey.LOG_LEVEL) ?? "info";
-  const logEnabled = parseBoolean(configService.get(LogKey.LOG_ON));
+  const level = configService.get<string>(ENV.LOG_LEVEL) ?? "info";
+  const logEnabled = parseBoolean(configService.get(ENV.LOG_ON));
 
   return {
     level,

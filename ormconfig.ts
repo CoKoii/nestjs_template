@@ -1,5 +1,5 @@
 import { DataSource } from "typeorm";
-import { loadEnvironmentFiles } from "./src/config/env.utils";
+import { loadEnvironmentFiles } from "./src/config/env.config";
 import { createDataSourceOptions } from "./src/config/typeorm.config";
 
 loadEnvironmentFiles();

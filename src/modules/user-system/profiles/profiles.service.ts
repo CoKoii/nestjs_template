@@ -9,8 +9,7 @@ export class ProfilesService {
     @InjectRepository(Profile)
     private readonly profileRepository: Repository<Profile>,
   ) {}
-  // ----------------------------------------------------------------------
-  // 根据token用户资料及其角色信息
+
   async findOne(
     userId: number,
     roles: string[] = [],
@@ -28,5 +27,4 @@ export class ProfilesService {
       permissions,
     };
   }
-  // ----------------------------------------------------------------------
 }
