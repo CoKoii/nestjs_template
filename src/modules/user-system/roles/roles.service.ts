@@ -1,0 +1,92 @@
+import { Injectable, NotFoundException } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { throwMySqlError } from "../../../infrastructure/database/mysql-error.util";
+import { CreateRoleDto } from "./dto/create-role.dto";
+import { QueryRolesDto } from "./dto/query-roles.dto";
+import { UpdateRoleDto } from "./dto/update-role.dto";
+import { Role } from "./entities/role.entity";
+
+@Injectable()
+export class RolesService {
+  constructor(
+    @InjectRepository(Role)
+    private readonly roleRepository: Repository<Role>,
+  ) {}
+
+  private buildRolePayload(dto: CreateRoleDto | UpdateRoleDto): Partial<Role> {
+    const payload: Partial<Role> = {};
+
+    if (dto.roleName !== undefined) {
+      payload.roleName = dto.roleName;
+    }
+    if (dto.description !== undefined) {
+      payload.description = dto.description;
+    }
+    if (dto.status !== undefined) {
+      payload.status = dto.status;
+    }
+
+    if (dto.permissions !== undefined) {
+      payload.permissions = dto.permissions.map(
+        (permissionId) => ({ id: permissionId }) as Role["permissions"][number],
+      );
+    }
+
+    return payload;
+  }
+
+  // ----------------------------------------------------------------------
+  // 创建角色
+  async create(createRoleDto: CreateRoleDto) {
+    try {
+      await this.roleRepository.save(
+        this.roleRepository.create(this.buildRolePayload(createRoleDto)),
+      );
+      return "创建成功";
+    } catch (error) {
+      throwMySqlError(error, {
+        unique: "角色名称已存在",
+        foreignKeyConstraint: "权限不存在",
+      });
+    }
+  }
+  // ----------------------------------------------------------------------
+  // 获取角色列表 - roleName 模糊搜索
+  async findAll(query: QueryRolesDto) {
+    const roleName = query.roleName?.trim();
+    const queryBuilder = this.roleRepository
+      .createQueryBuilder("role")
+      .leftJoinAndSelect("role.permissions", "permission")
+      .orderBy("role.id", "DESC");
+    if (roleName) {
+      queryBuilder.andWhere("role.roleName LIKE :roleName", {
+        roleName: `%${roleName}%`,
+      });
+    }
+    const [items, total] = await queryBuilder.getManyAndCount();
+    return {
+      items,
+      total,
+    };
+  }
+  // ----------------------------------------------------------------------
+  // 更新角色
+  async update(id: number, updateRoleDto: UpdateRoleDto) {
+    try {
+      const role = await this.roleRepository.preload({
+        id,
+        ...this.buildRolePayload(updateRoleDto),
+      });
+      if (!role) throw new NotFoundException("角色不存在");
+      await this.roleRepository.save(role);
+      return "更新成功";
+    } catch (error) {
+      throwMySqlError(error, {
+        unique: "角色名称已存在",
+        foreignKeyConstraint: "权限不存在",
+      });
+    }
+  }
+  // ----------------------------------------------------------------------
+}
