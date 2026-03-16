@@ -5,6 +5,7 @@ import {
   JoinColumn,
   OneToOne,
   PrimaryGeneratedColumn,
+  Relation,
   UpdateDateColumn,
 } from "typeorm";
 import { User } from "../../users/entities/user.entity";
@@ -21,5 +22,5 @@ export class Profile {
   updatedAt: Date;
   @OneToOne(() => User, (user) => user.profile)
   @JoinColumn()
-  user: User;
+  user: Relation<User>;
 }

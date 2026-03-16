@@ -4,6 +4,7 @@ import {
   Entity,
   ManyToMany,
   PrimaryGeneratedColumn,
+  Relation,
   UpdateDateColumn,
 } from "typeorm";
 import { Role } from "../../roles/entities/role.entity";
@@ -23,5 +24,5 @@ export class Permission {
   @UpdateDateColumn({ comment: "更新时间" })
   updatedAt: Date;
   @ManyToMany(() => Role, (role) => role.permissions)
-  roles: Role[];
+  roles: Relation<Role[]>;
 }

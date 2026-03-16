@@ -6,6 +6,7 @@ import {
   ManyToMany,
   OneToOne,
   PrimaryGeneratedColumn,
+  Relation,
   UpdateDateColumn,
 } from "typeorm";
 import { Profile } from "../../profiles/entities/profile.entity";
@@ -26,8 +27,8 @@ export class User {
   @UpdateDateColumn({ comment: "更新时间" })
   updatedAt: Date;
   @OneToOne(() => Profile, (profile) => profile.user, { cascade: true })
-  profile: Profile;
+  profile: Relation<Profile>;
   @ManyToMany(() => Role, (role) => role.users)
   @JoinTable({ name: "users_roles" })
-  roles: Role[];
+  roles: Relation<Role[]>;
 }
