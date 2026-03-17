@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { throwMySqlError } from "../../../infrastructure/database/mysql-error.util";
+import { throwMySqlError } from "../../../infrastructure/persistence/mysql/mysql-error.util";
 import { CreateRoleDto } from "./dto/create-role.dto";
 import { QueryRolesDto } from "./dto/query-roles.dto";
 import { UpdateRoleDto } from "./dto/update-role.dto";

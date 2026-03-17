@@ -1,7 +1,7 @@
 import { DataSource } from "typeorm";
 import { loadEnvironmentFiles } from "./src/config/env.config";
-import { createDataSourceOptions } from "./src/config/typeorm.config";
+import { createMySqlDataSourceOptions } from "./src/infrastructure/persistence/mysql/mysql.config";
 
 loadEnvironmentFiles();
 
-export default new DataSource(createDataSourceOptions());
+export default new DataSource(createMySqlDataSourceOptions());

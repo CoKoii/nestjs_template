@@ -1,9 +1,8 @@
 import { Module } from "@nestjs/common";
-import { ConfigModule, ConfigService } from "@nestjs/config";
-import { TypeOrmModule } from "@nestjs/typeorm";
+import { ConfigModule } from "@nestjs/config";
 import { resolveEnvFilePaths, validationSchema } from "./config/env.config";
-import { createTypeOrmModuleOptions } from "./config/typeorm.config";
 import { CoreModule } from "./core/core.module";
+import { InfrastructureModule } from "./infrastructure/infrastructure.module";
 import { UserSystemModule } from "./modules/user-system/user-system.module";
 
 @Module({
@@ -14,10 +13,7 @@ import { UserSystemModule } from "./modules/user-system/user-system.module";
       envFilePath: resolveEnvFilePaths(),
       validationSchema,
     }),
-    TypeOrmModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: createTypeOrmModuleOptions,
-    }),
+    InfrastructureModule,
     CoreModule,
     UserSystemModule,
   ],

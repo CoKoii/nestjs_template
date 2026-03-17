@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { throwMySqlError } from "../../../infrastructure/database/mysql-error.util";
+import { throwMySqlError } from "../../../infrastructure/persistence/mysql/mysql-error.util";
 import { CreatePermissionDto } from "./dto/create-permission.dto";
 import type { QueryPermissionsDto } from "./dto/query-permissions.dto";
 import { UpdatePermissionDto } from "./dto/update-permission.dto";

@@ -5,7 +5,7 @@ import {
   type PaginatedResult,
   resolvePagination,
 } from "../../../shared/dto/pagination-query.dto";
-import { throwMySqlError } from "../../../infrastructure/database/mysql-error.util";
+import { throwMySqlError } from "../../../infrastructure/persistence/mysql/mysql-error.util";
 import { Role } from "../roles/entities/role.entity";
 import { QueryUsersDto } from "./dto/query-users.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";

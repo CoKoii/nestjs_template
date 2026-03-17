@@ -2,7 +2,7 @@ import { Module } from "@nestjs/common";
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { ConfigService } from "@nestjs/config";
 import { WinstonModule } from "nest-winston";
-import { createLoggerOptions } from "../config/logger.config";
+import { createWinstonLoggerOptions } from "../infrastructure/logging/winston.config";
 import { JwtAuthGuard } from "./auth/guards/jwt-auth.guard";
 import { RolesGuard } from "./auth/guards/roles.guard";
 import { AllExceptionFilter } from "./http/filters/all-exception.filter";
@@ -12,7 +12,7 @@ import { ResponseInterceptor } from "./http/interceptors/response.interceptor";
   imports: [
     WinstonModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: createLoggerOptions,
+      useFactory: createWinstonLoggerOptions,
     }),
   ],
   providers: [

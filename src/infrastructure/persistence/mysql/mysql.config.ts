@@ -3,7 +3,12 @@ import type { TypeOrmModuleOptions } from "@nestjs/typeorm";
 import { join } from "node:path";
 import type { DataSourceOptions } from "typeorm";
 import type { MysqlConnectionOptions } from "typeorm/driver/mysql/MysqlConnectionOptions";
-import { DEFAULT_NODE_ENV, ENV, parseBoolean, parseNumber } from "./env.config";
+import {
+  DEFAULT_NODE_ENV,
+  ENV,
+  parseBoolean,
+  parseNumber,
+} from "../../../config/env.config";
 
 const isTypeScriptRuntime = __filename.endsWith(".ts");
 const runtimeExtension = isTypeScriptRuntime ? "ts" : "js";
@@ -36,14 +41,14 @@ const createDatabaseOptions = (
   logging: getString(get, ENV.NODE_ENV, DEFAULT_NODE_ENV) === "development",
 });
 
-export const createTypeOrmModuleOptions = (
+export const createMySqlTypeOrmModuleOptions = (
   configService: ConfigService,
 ): TypeOrmModuleOptions => ({
   ...createDatabaseOptions((key) => configService.get(key)),
   autoLoadEntities: true,
 });
 
-export const createDataSourceOptions = (): DataSourceOptions => ({
+export const createMySqlDataSourceOptions = (): DataSourceOptions => ({
   ...createDatabaseOptions((key) => process.env[key]),
   migrations,
   subscribers: [],

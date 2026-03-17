@@ -17,6 +17,7 @@ const isMySqlError = (error: unknown, code: string, errno: number) => {
   if (!e) return false;
   return e.code === code || e.errno === errno;
 };
+
 export const throwMySqlError = (
   error: unknown,
   messages: {

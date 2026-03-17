@@ -7,6 +7,7 @@
 - NestJS 11
 - TypeORM 0.3
 - MySQL
+- Redis
 - Passport JWT
 - Winston
 
@@ -14,9 +15,15 @@
 
 ```text
 src/
-  config/          # 启动配置与环境装配
+  config/          # 应用级启动配置：环境变量、Bootstrap
   core/            # 框架运行时能力：鉴权、HTTP 过滤器、拦截器、CoreModule
-  infrastructure/  # 数据库、日志等基础设施实现
+  infrastructure/  # 外部系统接入：持久化、缓存、日志
+    infrastructure.module.ts
+    persistence/
+      mysql/
+    cache/
+      redis/
+    logging/
   shared/          # 纯共享 DTO / utils，不依赖业务模块
   modules/         # 后续业务开发主目录
     user-system/   # 模板内置用户体系模块
@@ -26,14 +33,14 @@ src/
       roles/
       permissions/
       profiles/
-ormconfig.ts     # TypeORM CLI 入口，仅负责桥接配置
+ormconfig.ts     # TypeORM CLI 入口，仅桥接 MySQL 数据源配置
 ```
 
 ## 架构约定
 
-- `src/config` 只处理启动期配置。
+- `src/config` 只保留应用级配置，不承载具体基础设施实现。
 - `src/core` 放 Nest 运行时横切能力，不放业务逻辑。
-- `src/infrastructure` 放日志、数据库这类实现细节。
+- `src/infrastructure` 只放外部系统接入，并按能力边界拆分目录。
 - `src/shared` 只放可复用且不依赖业务模块的契约与工具。
 - `src/modules` 保持为业务边界目录；模板内置能力收敛在 `src/modules/user-system`，并通过 `UserSystemModule` 聚合，方便你继续新增自己的业务模块。
 
