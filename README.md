@@ -20,12 +20,15 @@ src/
   core/            # 框架运行时能力：鉴权、HTTP 过滤器、拦截器、CoreModule
   infrastructure/  # 外部系统接入：持久化、缓存、日志
     infrastructure.module.ts
+    logging/
+      logging.module.ts
     persistence/
+      persistence.module.ts
       mysql/
     cache/
       redis/
-    logging/
-  shared/          # 纯共享 DTO / utils，不依赖业务模块
+  shared/          # 纯共享契约与工具，不依赖业务模块
+    pagination/
   modules/         # 后续业务开发主目录
     user-system/   # 模板内置用户体系模块
       user-system.module.ts
@@ -59,12 +62,10 @@ ormconfig.ts     # TypeORM CLI 入口，仅桥接 MySQL 数据源配置
 - `CACHE_NAMESPACE`：缓存 key 命名空间，默认 `cache`
 - Redis 连接仍复用 `REDIS_*` 配置
 
-建议从示例文件开始：
+项目当前未附带 `.env.example` 文件，请直接补齐这三个环境文件：
 
 ```bash
-cp .env.example .env
-cp .env.development.example .env.development
-cp .env.production.example .env.production
+touch .env .env.development .env.production
 ```
 
 ## 安装与启动
@@ -86,6 +87,7 @@ pnpm prod
 
 ```bash
 pnpm lint
+pnpm typecheck
 pnpm test
 pnpm test:e2e
 ```

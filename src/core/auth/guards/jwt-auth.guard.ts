@@ -21,8 +21,12 @@ export class JwtAuthGuard extends AuthGuard("jwt") {
       : super.canActivate(context);
   }
   handleRequest<TUser>(err: unknown, user: TUser | false | null): TUser {
-    if (err || !user)
-      throw err ?? new UnauthorizedException("未登录或登录已过期");
+    if (err instanceof Error) {
+      throw err;
+    }
+    if (!user) {
+      throw new UnauthorizedException("未登录或登录已过期");
+    }
     return user;
   }
 }

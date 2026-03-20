@@ -13,14 +13,14 @@ import { User } from "../../users/entities/user.entity";
 @Entity({ comment: "用户信息" })
 export class Profile {
   @PrimaryGeneratedColumn({ comment: "主键ID" })
-  id: number;
+  id!: number;
   @Column({ comment: "昵称" })
-  nickname: string;
+  nickname!: string;
   @CreateDateColumn({ comment: "创建时间" })
-  createdAt: Date;
+  createdAt!: Date;
   @UpdateDateColumn({ comment: "更新时间" })
-  updatedAt: Date;
+  updatedAt!: Date;
   @OneToOne(() => User, (user) => user.profile)
   @JoinColumn()
-  user: Relation<User>;
+  user!: Relation<User>;
 }

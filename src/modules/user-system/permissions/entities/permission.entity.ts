@@ -12,17 +12,17 @@ import { Role } from "../../roles/entities/role.entity";
 @Entity({ comment: "权限码" })
 export class Permission {
   @PrimaryGeneratedColumn({ comment: "权限ID" })
-  id: number;
+  id!: number;
   @Column({ comment: "权限码", unique: true })
-  code: string;
+  code!: string;
   @Column({ comment: "权限描述", nullable: true })
-  description: string;
+  description?: string;
   @Column({ comment: "状态", default: true })
-  status: boolean;
+  status!: boolean;
   @CreateDateColumn({ comment: "创建时间" })
-  createdAt: Date;
+  createdAt!: Date;
   @UpdateDateColumn({ comment: "更新时间" })
-  updatedAt: Date;
+  updatedAt!: Date;
   @ManyToMany(() => Role, (role) => role.permissions)
-  roles: Relation<Role[]>;
+  roles!: Relation<Role[]>;
 }

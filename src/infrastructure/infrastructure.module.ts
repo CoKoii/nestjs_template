@@ -1,16 +1,9 @@
 import { Module } from "@nestjs/common";
-import { ConfigService } from "@nestjs/config";
-import { TypeOrmModule } from "@nestjs/typeorm";
 import { ApplicationCacheModule } from "./cache/cache.module";
-import { createMySqlTypeOrmModuleOptions } from "./persistence/mysql/mysql.config";
+import { LoggingModule } from "./logging/logging.module";
+import { PersistenceModule } from "./persistence/persistence.module";
 
 @Module({
-  imports: [
-    TypeOrmModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: createMySqlTypeOrmModuleOptions,
-    }),
-    ApplicationCacheModule,
-  ],
+  imports: [LoggingModule, PersistenceModule, ApplicationCacheModule],
 })
 export class InfrastructureModule {}

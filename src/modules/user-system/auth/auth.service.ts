@@ -7,6 +7,7 @@ import { JwtService } from "@nestjs/jwt";
 import { InjectRepository } from "@nestjs/typeorm";
 import * as argon2 from "argon2";
 import { Repository } from "typeorm";
+import type { AuthTokenPayload } from "../../../core/auth/types/auth-user.type";
 import { Profile } from "../profiles/entities/profile.entity";
 import { User } from "../users/entities/user.entity";
 import { LoginDto } from "./dto/login.dto";
@@ -20,7 +21,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
-  private async signToken(user: User) {
+  private buildTokenPayload(user: User): AuthTokenPayload {
     const activeRoles = user.roles?.filter((role) => role.status) ?? [];
     const roles = activeRoles.map((role) => role.roleName);
     const permissions = Array.from(
@@ -31,12 +32,16 @@ export class AuthService {
           .map((permission) => permission.code),
       ),
     );
-    return this.jwtService.signAsync({
+    return {
       sub: user.id,
       username: user.username,
       roles,
       permissions,
-    });
+    };
+  }
+
+  private signToken(user: User) {
+    return this.jwtService.signAsync(this.buildTokenPayload(user));
   }
 
   async register(dto: RegisterDto) {

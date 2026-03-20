@@ -2,6 +2,7 @@ import { HttpException } from "@nestjs/common";
 import type { Request } from "express";
 import { QueryFailedError } from "typeorm";
 import { formatTimestamp } from "../../../shared/utils/timestamp.util";
+import type { AuthTokenPayload } from "../../auth/types/auth-user.type";
 
 const DEFAULT_MESSAGE = "Internal Server Error";
 
@@ -66,7 +67,7 @@ const parseJWT = (authorization: string | string[] | null | undefined) => {
       username,
       roles: toStringArray(payload["roles"]),
       permissions: toStringArray(payload["permissions"]),
-    };
+    } satisfies AuthTokenPayload;
   } catch {
     return null;
   }

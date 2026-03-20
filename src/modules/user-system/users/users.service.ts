@@ -4,7 +4,7 @@ import { Repository } from "typeorm";
 import {
   type PaginatedResult,
   resolvePagination,
-} from "../../../shared/dto/pagination-query.dto";
+} from "../../../shared/pagination/pagination-query.dto";
 import { throwMySqlError } from "../../../infrastructure/persistence/mysql/mysql-error.util";
 import { Role } from "../roles/entities/role.entity";
 import { QueryUsersDto } from "./dto/query-users.dto";

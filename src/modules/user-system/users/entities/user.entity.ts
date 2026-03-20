@@ -15,20 +15,20 @@ import { Role } from "../../roles/entities/role.entity";
 @Entity({ comment: "用户" })
 export class User {
   @PrimaryGeneratedColumn({ comment: "用户ID" })
-  id: number;
+  id!: number;
   @Column({ comment: "用户名", unique: true })
-  username: string;
+  username!: string;
   @Column({ comment: "用户密码", select: false })
-  password: string;
+  password!: string;
   @Column({ comment: "账户状态", default: true })
-  status: boolean;
+  status!: boolean;
   @CreateDateColumn({ comment: "创建时间" })
-  createdAt: Date;
+  createdAt!: Date;
   @UpdateDateColumn({ comment: "更新时间" })
-  updatedAt: Date;
+  updatedAt!: Date;
   @OneToOne(() => Profile, (profile) => profile.user, { cascade: true })
-  profile: Relation<Profile>;
+  profile!: Relation<Profile>;
   @ManyToMany(() => Role, (role) => role.users)
   @JoinTable({ name: "users_roles" })
-  roles: Relation<Role[]>;
+  roles!: Relation<Role[]>;
 }
