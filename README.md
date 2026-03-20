@@ -8,6 +8,7 @@
 - TypeORM 0.3
 - MySQL
 - Redis
+- Cache Manager
 - Passport JWT
 - Winston
 
@@ -51,6 +52,12 @@ ormconfig.ts     # TypeORM CLI 入口，仅桥接 MySQL 数据源配置
 - `.env`：所有环境共享的基础配置
 - `.env.development`：开发环境覆盖
 - `.env.production`：生产环境覆盖
+
+缓存相关共享配置：
+
+- `CACHE_TTL_MS`：默认缓存 TTL，单位毫秒
+- `CACHE_NAMESPACE`：缓存 key 命名空间，默认 `cache`
+- Redis 连接仍复用 `REDIS_*` 配置
 
 建议从示例文件开始：
 
@@ -122,6 +129,29 @@ findMeV2() {
 GET /api/profiles/me
 GET /api/v2/profiles/me
 ```
+
+## 缓存用法
+
+项目已经把 `cache-manager + ioredis` 注册为全局缓存模块，并复用了现有 `RedisModule` 的连接。业务里直接注入 `CACHE_MANAGER` 即可：
+
+```ts
+import { CACHE_MANAGER } from "@nestjs/cache-manager";
+import { Inject, Injectable } from "@nestjs/common";
+import type { Cache } from "cache-manager";
+
+@Injectable()
+export class DemoService {
+  constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache) {}
+
+  async findOne(id: string) {
+    return this.cache.wrap(`demo:${id}`, async () => {
+      return { id };
+    });
+  }
+}
+```
+
+`ttl` 单位统一为毫秒；如果不显式传入，会走 `CACHE_TTL_MS`。
 
 ## 开发建议
 

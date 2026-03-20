@@ -1,7 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { RedisModule } from "./cache/redis/redis.module";
+import { ApplicationCacheModule } from "./cache/cache.module";
 import { createMySqlTypeOrmModuleOptions } from "./persistence/mysql/mysql.config";
 
 @Module({
@@ -10,7 +10,7 @@ import { createMySqlTypeOrmModuleOptions } from "./persistence/mysql/mysql.confi
       inject: [ConfigService],
       useFactory: createMySqlTypeOrmModuleOptions,
     }),
-    RedisModule,
+    ApplicationCacheModule,
   ],
 })
 export class InfrastructureModule {}

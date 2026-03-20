@@ -9,6 +9,8 @@ export const ENV = {
   NODE_ENV: "NODE_ENV",
   PORT: "PORT",
   CORS_ORIGINS: "CORS_ORIGINS",
+  CACHE_TTL_MS: "CACHE_TTL_MS",
+  CACHE_NAMESPACE: "CACHE_NAMESPACE",
   DB_TYPE: "DB_TYPE",
   DB_HOST: "DB_HOST",
   DB_PORT: "DB_PORT",
@@ -66,6 +68,8 @@ export const validationSchema = Joi.object({
     .default(DEFAULT_NODE_ENV),
   [ENV.PORT]: Joi.number().port().default(3000),
   [ENV.CORS_ORIGINS]: Joi.string().allow("").optional(),
+  [ENV.CACHE_TTL_MS]: Joi.number().integer().min(0).default(60_000),
+  [ENV.CACHE_NAMESPACE]: Joi.string().trim().default("cache"),
   [ENV.LOG_ON]: Joi.boolean().truthy("true").falsy("false").default(false),
   [ENV.LOG_LEVEL]: Joi.string()
     .valid("error", "warn", "info", "http", "verbose", "debug", "silly")
@@ -99,6 +103,14 @@ export const parseBoolean = (value: unknown, fallback = false): boolean => {
 export const parseNumber = (value: unknown, fallback: number): number => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+export const parseString = (value: unknown, fallback = ""): string =>
+  typeof value === "string" ? value : fallback;
+
+export const parseOptionalString = (value: unknown): string | undefined => {
+  const parsed = parseString(value);
+  return parsed ? parsed : undefined;
 };
 
 export const parseCommaSeparatedValue = (value: unknown): string[] =>
