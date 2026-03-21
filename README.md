@@ -68,6 +68,13 @@ ormconfig.ts     # TypeORM CLI 入口，仅桥接 MySQL 数据源配置
 touch .env .env.development .env.production
 ```
 
+JWT 鉴权相关配置：
+
+- `JWT_ACCESS_SECRET`：access token 签名密钥
+- `JWT_ACCESS_EXPIRES_IN`：access token 过期时间，例如 `15m`
+- `JWT_REFRESH_SECRET`：refresh token 签名密钥
+- `JWT_REFRESH_EXPIRES_IN`：refresh token 过期时间，例如 `7d`
+
 ## 安装与启动
 
 ```bash
@@ -104,6 +111,9 @@ pnpm test:e2e
 
 - `POST /api/auth/login`
 - `POST /api/auth/register`
+- `POST /api/auth/refresh`
+- `POST /api/auth/logout`
+- `POST /api/auth/logout-all`
 - `GET /api/users`
 - `PUT /api/users/:id`
 - `POST /api/roles`

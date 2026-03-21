@@ -24,7 +24,10 @@ export const ENV = {
   REDIS_PASSWORD: "REDIS_PASSWORD",
   REDIS_DB: "REDIS_DB",
   REDIS_KEY_PREFIX: "REDIS_KEY_PREFIX",
-  JWT_SECRET: "JWT_SECRET",
+  JWT_ACCESS_SECRET: "JWT_ACCESS_SECRET",
+  JWT_ACCESS_EXPIRES_IN: "JWT_ACCESS_EXPIRES_IN",
+  JWT_REFRESH_SECRET: "JWT_REFRESH_SECRET",
+  JWT_REFRESH_EXPIRES_IN: "JWT_REFRESH_EXPIRES_IN",
   LOG_ON: "LOG_ON",
   LOG_LEVEL: "LOG_LEVEL",
 } as const;
@@ -87,7 +90,10 @@ export const validationSchema = Joi.object({
   [ENV.REDIS_PASSWORD]: Joi.string().allow("").optional(),
   [ENV.REDIS_DB]: Joi.number().integer().min(0).default(0),
   [ENV.REDIS_KEY_PREFIX]: Joi.string().allow("").optional(),
-  [ENV.JWT_SECRET]: Joi.string().required(),
+  [ENV.JWT_ACCESS_SECRET]: Joi.string().required(),
+  [ENV.JWT_ACCESS_EXPIRES_IN]: Joi.string().trim().required(),
+  [ENV.JWT_REFRESH_SECRET]: Joi.string().required(),
+  [ENV.JWT_REFRESH_EXPIRES_IN]: Joi.string().trim().required(),
 });
 
 export const parseBoolean = (value: unknown, fallback = false): boolean => {

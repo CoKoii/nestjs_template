@@ -2,7 +2,12 @@ import { HttpException } from "@nestjs/common";
 import type { Request } from "express";
 import { QueryFailedError } from "typeorm";
 import { formatTimestamp } from "../../../shared/utils/timestamp.util";
-import type { AuthTokenPayload } from "../../auth/types/auth-user.type";
+import {
+  ACCESS_TOKEN_TYPE,
+  REFRESH_TOKEN_TYPE,
+  type AuthTokenPayload,
+  type RefreshTokenPayload,
+} from "../../auth/types/auth-user.type";
 
 const DEFAULT_MESSAGE = "Internal Server Error";
 
@@ -15,6 +20,7 @@ const SENSITIVE_KEYS = new Set([
   "authorization",
   "token",
   "accessToken",
+  "refreshToken",
 ]);
 
 const maskString = (value: string) =>
@@ -60,10 +66,30 @@ const parseJWT = (authorization: string | string[] | null | undefined) => {
     ) as unknown;
     if (!isRecord(payload)) return null;
     const sub = payload["sub"];
+    const type = payload["type"];
+    if (
+      typeof sub !== "number" ||
+      (type !== ACCESS_TOKEN_TYPE && type !== REFRESH_TOKEN_TYPE)
+    ) {
+      return null;
+    }
+    if (type === REFRESH_TOKEN_TYPE) {
+      const sid = payload["sid"];
+      if (typeof sid !== "string") return null;
+      return {
+        sub,
+        type,
+        sid,
+      } satisfies RefreshTokenPayload;
+    }
+
     const username = payload["username"];
-    if (typeof sub !== "number" || typeof username !== "string") return null;
+    const sid = payload["sid"];
+    if (typeof username !== "string" || typeof sid !== "string") return null;
     return {
       sub,
+      type,
+      sid,
       username,
       roles: toStringArray(payload["roles"]),
       permissions: toStringArray(payload["permissions"]),
