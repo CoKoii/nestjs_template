@@ -11,6 +11,8 @@ export class ProfilesService {
     private readonly userRepository: Repository<User>,
   ) {}
 
+  // --------------------------------------------------------------------------------------------------
+  // 获取当前用户资料
   async getCurrent(user: AuthUser) {
     const currentUser = await this.userRepository.findOne({
       where: { id: user.userId },
@@ -39,4 +41,5 @@ export class ProfilesService {
       updatedAt: currentUser.updatedAt,
     };
   }
+  // --------------------------------------------------------------------------------------------------
 }

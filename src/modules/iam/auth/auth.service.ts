@@ -42,13 +42,18 @@ export class AuthService {
     private readonly configService: ConfigService,
   ) {}
 
+  // --------------------------------------------------------------------------------------------------
+  // 创建用户认证查询构造器
   private createUserAuthQueryBuilder() {
     return this.users
       .createQueryBuilder("user")
       .leftJoinAndSelect("user.roles", "role")
       .leftJoinAndSelect("role.permissions", "permission");
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 创建会话认证查询构造器
   private createSessionAuthQueryBuilder() {
     return this.authSessions
       .createQueryBuilder("session")
@@ -56,7 +61,10 @@ export class AuthService {
       .leftJoinAndSelect("user.roles", "role")
       .leftJoinAndSelect("role.permissions", "permission");
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 获取访问令牌签名配置
   private getAccessTokenOptions(): JwtSignOptions {
     const authEnvironment = getAuthEnvironment(this.configService);
 
@@ -66,7 +74,10 @@ export class AuthService {
         authEnvironment.accessTokenExpiresIn as JwtSignOptions["expiresIn"],
     };
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 获取刷新令牌签名配置
   private getRefreshTokenOptions(): JwtSignOptions {
     const authEnvironment = getAuthEnvironment(this.configService);
 
@@ -76,7 +87,10 @@ export class AuthService {
         authEnvironment.refreshTokenExpiresIn as JwtSignOptions["expiresIn"],
     };
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 构建访问令牌载荷
   private buildAccessTokenPayload(
     user: User,
     sessionId: string,
@@ -100,7 +114,10 @@ export class AuthService {
       permissions,
     };
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 构建刷新令牌载荷
   private buildRefreshTokenPayload(
     userId: number,
     sessionId: string,
@@ -111,21 +128,33 @@ export class AuthService {
       sid: sessionId,
     };
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 抛出登录凭证无效异常
   private throwInvalidCredentials(): never {
     throw new ForbiddenException("用户名或密码错误");
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 抛出刷新令牌无效异常
   private throwInvalidRefreshToken(): never {
     throw new ForbiddenException("刷新令牌无效或已过期");
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 校验用户状态
   private ensureUserIsActive(user: Pick<User, "status">): void {
     if (!user.status) {
       throw new ForbiddenException("账户已被禁用");
     }
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 提取令牌过期时间
   private extractTokenExpiration(token: string): Date {
     const payload: unknown = this.jwtService.decode(token);
     if (!payload || typeof payload !== "object" || payload === null) {
@@ -139,7 +168,10 @@ export class AuthService {
 
     return new Date(exp * 1000);
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 签发访问令牌和刷新令牌
   private async issueTokens(
     user: User,
     sessionId: string = randomUUID(),
@@ -163,7 +195,10 @@ export class AuthService {
       refreshTokenExpiresAt: this.extractTokenExpiration(refreshToken),
     };
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 构建会话持久化数据
   private buildSessionPersistencePayload(
     userId: number,
     tokens: IssuedAuthTokens,
@@ -179,14 +214,20 @@ export class AuthService {
       userAgent: context.userAgent,
     };
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 查询登录用户
   private findUserForLogin(username: string) {
     return this.createUserAuthQueryBuilder()
       .addSelect("user.password")
       .where("user.username = :username", { username })
       .getOne();
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 查询刷新会话
   private findSessionForRefresh(userId: number, sessionId: string) {
     return this.createSessionAuthQueryBuilder()
       .addSelect("session.refreshTokenHash")
@@ -194,7 +235,10 @@ export class AuthService {
       .andWhere("session.userId = :userId", { userId })
       .getOne();
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 保存登录会话
   private async saveSession(
     userId: number,
     tokens: IssuedAuthTokens,
@@ -206,7 +250,10 @@ export class AuthService {
       }),
     );
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 签发并保存会话令牌
   private async issueSessionTokens(
     user: User,
     context: AuthRequestContext,
@@ -216,7 +263,10 @@ export class AuthService {
     await this.saveSession(user.id, tokens, context);
     return this.toAuthTokens(tokens);
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 校验登录用户
   private async validateLoginUser(
     user: User | null,
     password: string,
@@ -230,7 +280,10 @@ export class AuthService {
     this.ensureUserIsActive(user);
     return user;
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 校验刷新会话
   private async validateRefreshSession(
     userId: number,
     sessionId: string,
@@ -249,14 +302,20 @@ export class AuthService {
     }
     return session;
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 转换认证令牌返回结构
   private toAuthTokens(tokens: IssuedAuthTokens): AuthTokens {
     return {
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
     };
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 创建用户
   private async createUser(dto: RegisterDto): Promise<User> {
     try {
       return await this.users.save(
@@ -271,7 +330,10 @@ export class AuthService {
       throw error;
     }
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 用户注册
   async register(
     dto: RegisterDto,
     context: AuthRequestContext,
@@ -283,7 +345,10 @@ export class AuthService {
     const user = await this.createUser(dto);
     return this.issueSessionTokens(user, context);
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 用户登录
   async login(dto: LoginDto, context: AuthRequestContext): Promise<AuthTokens> {
     const user = await this.validateLoginUser(
       await this.findUserForLogin(dto.username),
@@ -291,7 +356,10 @@ export class AuthService {
     );
     return this.issueSessionTokens(user, context);
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 刷新登录令牌
   async refresh(
     user: RefreshTokenUser,
     context: AuthRequestContext,
@@ -303,14 +371,21 @@ export class AuthService {
     );
     return this.issueSessionTokens(session.user, context, session.id);
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 退出当前登录
   async logout(user: AuthUser): Promise<string> {
     await this.authSessions.delete({ id: user.sessionId, userId: user.userId });
     return "退出成功";
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 退出全部登录会话
   async logoutAll(user: AuthUser): Promise<string> {
     await this.authSessions.delete({ userId: user.userId });
     return "退出成功";
   }
+  // --------------------------------------------------------------------------------------------------
 }

@@ -14,6 +14,8 @@ export class AuthSessionCleanupService {
     private readonly authSessions: Repository<AuthSession>,
   ) {}
 
+  // --------------------------------------------------------------------------------------------------
+  // 清理过期登录会话
   @Cron(CronExpression.EVERY_10_MINUTES, {
     name: "auth-session-cleanup",
     waitForCompletion: true,
@@ -35,11 +37,14 @@ export class AuthSessionCleanupService {
 
     if (deletedCount > 0) {
       this.logger.log(
-        `Deleted ${deletedCount} expired auth session(s) in ${Date.now() - startedAt}ms`,
+        `已删除 ${deletedCount} 条过期登录会话，耗时 ${Date.now() - startedAt}ms`,
       );
     }
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 分批删除过期登录会话
   private async deleteExpiredSessionBatch(
     cleanupBefore: Date,
   ): Promise<number> {
@@ -58,4 +63,5 @@ export class AuthSessionCleanupService {
     await this.authSessions.delete(expiredSessionIds);
     return expiredSessionIds.length;
   }
+  // --------------------------------------------------------------------------------------------------
 }

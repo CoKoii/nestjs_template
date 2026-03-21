@@ -17,6 +17,8 @@ export class UsersService {
     @InjectRepository(User) private readonly userRepository: Repository<User>,
   ) {}
 
+  // --------------------------------------------------------------------------------------------------
+  // 获取用户列表
   async list(query: QueryUsersDto): Promise<PageResult<User>> {
     const { page, pageSize, skip } = resolvePageQuery(query);
     const nickname = query.nickname?.trim();
@@ -38,7 +40,10 @@ export class UsersService {
     const [items, total] = await queryBuilder.getManyAndCount();
     return { items, total, page, pageSize };
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 更新用户
   async update(id: number, updateUserDto: UpdateUserDto) {
     const user = await this.userRepository.findOne({
       where: { id },
@@ -66,4 +71,5 @@ export class UsersService {
     }
     return "更新成功";
   }
+  // --------------------------------------------------------------------------------------------------
 }

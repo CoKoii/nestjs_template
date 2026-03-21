@@ -18,6 +18,8 @@ export class RolesService {
     private readonly roleRepository: Repository<Role>,
   ) {}
 
+  // --------------------------------------------------------------------------------------------------
+  // 构建角色数据
   private buildRolePayload(dto: CreateRoleDto | UpdateRoleDto): Partial<Role> {
     const payload: Partial<Role> = {};
 
@@ -39,7 +41,10 @@ export class RolesService {
 
     return payload;
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 创建角色
   async create(createRoleDto: CreateRoleDto) {
     try {
       await this.roleRepository.save(
@@ -53,7 +58,10 @@ export class RolesService {
       });
     }
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 获取角色列表
   async list(query: QueryRolesDto): Promise<PageResult<Role>> {
     const { page, pageSize, skip } = resolvePageQuery(query);
     const roleName = query.roleName?.trim();
@@ -73,7 +81,10 @@ export class RolesService {
     const [items, total] = await queryBuilder.getManyAndCount();
     return { items, total, page, pageSize };
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 更新角色
   async update(id: number, updateRoleDto: UpdateRoleDto) {
     try {
       const role = await this.roleRepository.preload({
@@ -90,4 +101,5 @@ export class RolesService {
       });
     }
   }
+  // --------------------------------------------------------------------------------------------------
 }

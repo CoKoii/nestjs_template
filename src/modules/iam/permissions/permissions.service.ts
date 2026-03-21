@@ -18,6 +18,8 @@ export class PermissionsService {
     private readonly permissionRepository: Repository<Permission>,
   ) {}
 
+  // --------------------------------------------------------------------------------------------------
+  // 创建权限
   async create(createPermissionDto: CreatePermissionDto) {
     try {
       await this.permissionRepository.save(createPermissionDto);
@@ -28,7 +30,10 @@ export class PermissionsService {
       });
     }
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 获取权限列表
   async list(query: QueryPermissionsDto): Promise<PageResult<Permission>> {
     const { page, pageSize, skip } = resolvePageQuery(query);
     const code = query.code?.trim();
@@ -47,7 +52,10 @@ export class PermissionsService {
     const [items, total] = await queryBuilder.getManyAndCount();
     return { items, total, page, pageSize };
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 更新权限
   async update(id: number, updatePermissionDto: UpdatePermissionDto) {
     try {
       const permission = await this.permissionRepository.preload({
@@ -66,10 +74,14 @@ export class PermissionsService {
       });
     }
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 获取当前用户权限
   listMine(permissions: string[] = []) {
     return Array.from(new Set(permissions)).sort((left, right) =>
       left.localeCompare(right),
     );
   }
+  // --------------------------------------------------------------------------------------------------
 }
