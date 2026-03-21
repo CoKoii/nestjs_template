@@ -17,16 +17,24 @@ import { RolesService } from "./roles.service";
 export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
 
+  // -------------------------
+  // 创建角色
   @Post()
   create(@Body() createRoleDto: CreateRoleDto) {
     return this.rolesService.create(createRoleDto);
   }
+  // -------------------------
 
+  // -------------------------
+  // 获取角色列表
   @Get()
   list(@Query() query: QueryRolesDto) {
     return this.rolesService.list(query);
   }
+  // -------------------------
 
+  // -------------------------
+  // 更新角色
   @Put(":id")
   update(
     @Param("id", ParseIntPipe) id: number,
@@ -34,4 +42,5 @@ export class RolesController {
   ) {
     return this.rolesService.update(id, updateRoleDto);
   }
+  // -------------------------
 }

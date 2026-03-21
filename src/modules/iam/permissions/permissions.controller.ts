@@ -19,21 +19,32 @@ import { PermissionsService } from "./permissions.service";
 export class PermissionsController {
   constructor(private readonly permissionsService: PermissionsService) {}
 
+  // -------------------------
+  // 获取当前用户权限
   @Get("me")
   listMine(@CurrentUser() user: AuthUser) {
     return this.permissionsService.listMine(user.permissions);
   }
+  // -------------------------
 
+  // -------------------------
+  // 创建权限
   @Post()
   create(@Body() createPermissionDto: CreatePermissionDto) {
     return this.permissionsService.create(createPermissionDto);
   }
+  // -------------------------
 
+  // -------------------------
+  // 获取权限列表
   @Get()
   list(@Query() query: QueryPermissionsDto) {
     return this.permissionsService.list(query);
   }
+  // -------------------------
 
+  // -------------------------
+  // 更新权限
   @Put(":id")
   update(
     @Param("id", ParseIntPipe) id: number,
@@ -41,4 +52,5 @@ export class PermissionsController {
   ) {
     return this.permissionsService.update(id, updatePermissionDto);
   }
+  // -------------------------
 }

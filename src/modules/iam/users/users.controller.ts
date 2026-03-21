@@ -15,11 +15,16 @@ import { UsersService } from "./users.service";
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
+  // -------------------------
+  // 获取用户列表
   @Get()
   list(@Query() query: QueryUsersDto) {
     return this.usersService.list(query);
   }
+  // -------------------------
 
+  // -------------------------
+  // 更新用户
   @Put(":id")
   update(
     @Param("id", ParseIntPipe) id: number,
@@ -27,4 +32,5 @@ export class UsersController {
   ) {
     return this.usersService.update(id, updateUserDto);
   }
+  // -------------------------
 }

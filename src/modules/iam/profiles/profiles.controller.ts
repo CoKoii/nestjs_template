@@ -7,8 +7,11 @@ import { ProfilesService } from "./profiles.service";
 export class ProfilesController {
   constructor(private readonly profilesService: ProfilesService) {}
 
+  // -------------------------
+  // 获取当前用户资料
   @Get("me")
   getCurrent(@CurrentUser() user: AuthUser) {
     return this.profilesService.getCurrent(user);
   }
+  // -------------------------
 }
