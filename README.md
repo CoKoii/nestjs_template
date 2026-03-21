@@ -1,150 +1,78 @@
 # NestJS Template
 
-一个面向后台管理系统的 NestJS 模板，保留登录注册、用户、角色、权限、个人资料这些基础模块，同时把运行配置、全局契约和业务模块边界拆清楚，方便后续直接在 `src/modules` 内继续开发。
-
-## 技术栈
-
-- NestJS 11
-- TypeORM 0.3
-- MySQL
-- Redis
-- Cache Manager
-- Passport JWT
-- Winston
-
-## 目录结构
-
-```text
-src/
-  config/          # 应用级启动配置：环境变量、Bootstrap
-  core/            # 框架运行时能力：鉴权、HTTP 过滤器、拦截器、CoreModule
-  infrastructure/  # 外部系统接入：持久化、缓存、日志
-    infrastructure.module.ts
-    logging/
-      logging.module.ts
-    persistence/
-      persistence.module.ts
-      mysql/
-    cache/
-      redis/
-  shared/          # 纯共享契约与工具，不依赖业务模块
-    pagination/
-  modules/         # 后续业务开发主目录
-    user-system/   # 模板内置用户体系模块
-      user-system.module.ts
-      auth/
-      users/
-      roles/
-      permissions/
-      profiles/
-ormconfig.ts     # TypeORM CLI 入口，仅桥接 MySQL 数据源配置
-```
-
-## 架构约定
-
-- `src/config` 只保留应用级配置，不承载具体基础设施实现。
-- `src/core` 放 Nest 运行时横切能力，不放业务逻辑。
-- `src/infrastructure` 只放外部系统接入，并按能力边界拆分目录。
-- `src/shared` 只放可复用且不依赖业务模块的契约与工具。
-- `src/modules` 保持为业务边界目录；模板内置能力收敛在 `src/modules/user-system`，并通过 `UserSystemModule` 聚合，方便你继续新增自己的业务模块。
-
-## 环境配置
-
-项目支持三层环境配置：
-
-- `.env`：所有环境共享的基础配置
-- `.env.development`：开发环境覆盖
-- `.env.production`：生产环境覆盖
-
-缓存相关共享配置：
-
-- `CACHE_TTL_MS`：默认缓存 TTL，单位毫秒
-- `CACHE_NAMESPACE`：缓存 key 命名空间，默认 `cache`
-- Redis 连接仍复用 `REDIS_*` 配置
-
-项目当前未附带 `.env.example` 文件，请直接补齐这三个环境文件：
-
-```bash
-touch .env .env.development .env.production
-```
-
-JWT 鉴权相关配置：
-
-- `JWT_ACCESS_SECRET`：access token 签名密钥
-- `JWT_ACCESS_EXPIRES_IN`：access token 过期时间，例如 `15m`
-- `JWT_REFRESH_SECRET`：refresh token 签名密钥
-- `JWT_REFRESH_EXPIRES_IN`：refresh token 过期时间，例如 `7d`
-
-## 安装与启动
+## 启动
 
 ```bash
 pnpm install
-
-# 开发模式
 pnpm dev
+```
 
-# 构建
+```bash
 pnpm build
-
-# 生产模式
 pnpm prod
 ```
 
-## 代码检查
+## 环境文件
 
-```bash
-pnpm lint
-pnpm typecheck
-pnpm test
-pnpm test:e2e
+- `.env`
+- `.env.development`
+- `.env.production`
+
+常用项：
+
+```env
+PORT=3000
+
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_USERNAME=root
+DB_PASSWORD=123456
+DB_DATABASE=nestjs_demo
+DB_SYNC=false
+
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+REDIS_DB=0
+REDIS_KEY_PREFIX=nest:
+
+CACHE_TTL_MS=60000
+CACHE_NAMESPACE=cache
+
+JWT_ACCESS_SECRET=access-secret
+JWT_ACCESS_EXPIRES_IN=1d
+JWT_REFRESH_SECRET=refresh-secret
+JWT_REFRESH_EXPIRES_IN=7d
+
+LOG_ON=true
+LOG_LEVEL=info
 ```
 
-## API 约定
+## 功能示例
 
-- 全局前缀：`/api`
-- 默认版本：不在 URL 中显式出现
-- 版本控制：默认接口直接走 `/api/...`；只有新增版本接口时再显式写 `@Version('2')`，路径才会变成 `/api/v2/...`
-- 成功响应统一为 `{ code, data, timestamp }`
-- 异常响应统一为 `{ code, message, data, timestamp }`
+### 缓存怎么配
 
-当前模板内置接口：
+缓存模块已经是全局模块，只要在 `AppModule` 引一次 `AppCacheModule`，后面的业务模块里直接注入 `CACHE_MANAGER` 即可，不用重复注册。
 
-- `POST /api/auth/login`
-- `POST /api/auth/register`
-- `POST /api/auth/refresh`
-- `POST /api/auth/logout`
-- `POST /api/auth/logout-all`
-- `GET /api/users`
-- `PUT /api/users/:id`
-- `POST /api/roles`
-- `GET /api/roles`
-- `PUT /api/roles/:id`
-- `GET /api/permissions/me`
-- `POST /api/permissions`
-- `GET /api/permissions`
-- `PUT /api/permissions/:id`
-- `GET /api/profiles/me`
-
-后续新增版本时示例：
+默认缓存配置等价于：
 
 ```ts
-@Version("2")
-@Get("me")
-findMeV2() {
-  return this.profileService.findOneV2();
-}
+return {
+  ttl: cacheEnvironment.ttl,
+  namespace: cacheEnvironment.namespace,
+  stores: new KeyvRedisStore(redisClient, redisEnvironment.keyPrefix ?? ""),
+};
 ```
 
-对应访问路径：
+对应环境变量主要是：
 
-```text
-GET /api/profiles/me
-GET /api/v2/profiles/me
-```
+- `CACHE_TTL_MS`
+- `CACHE_NAMESPACE`
+- `REDIS_HOST`
+- `REDIS_PORT`
+- `REDIS_DB`
+- `REDIS_KEY_PREFIX`
 
-## 缓存用法
-
-项目已经把 `cache-manager + ioredis` 注册为全局缓存模块，并复用了现有 `RedisModule` 的连接。业务里直接注入 `CACHE_MANAGER` 即可：
+### cache-manager 怎么用
 
 ```ts
 import { CACHE_MANAGER } from "@nestjs/cache-manager";
@@ -155,18 +83,153 @@ import type { Cache } from "cache-manager";
 export class DemoService {
   constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache) {}
 
-  async findOne(id: string) {
-    return this.cache.wrap(`demo:${id}`, async () => {
-      return { id };
-    });
+  async getUser(id: number) {
+    const key = `user:${id}`;
+
+    const cached = await this.cache.get<{ id: number; username: string }>(key);
+    if (cached) {
+      return cached;
+    }
+
+    const user = { id, username: "admin001" };
+    await this.cache.set(key, user, 5 * 60_000);
+
+    return user;
+  }
+
+  async getUserPermissions(userId: number) {
+    return this.cache.wrap(`user:${userId}:permissions`, async () => [
+      "user:list",
+      "user:update",
+    ]);
+  }
+
+  async clearUserCache(id: number) {
+    await this.cache.del(`user:${id}`);
   }
 }
 ```
 
-`ttl` 单位统一为毫秒；如果不显式传入，会走 `CACHE_TTL_MS`。
+### 公开接口 `@Public`
 
-## 开发建议
+`@Public()` 会跳过全局 `JwtAuthGuard`，适合登录、注册、健康检查这类不需要登录的接口。
 
-- 新增业务优先放在 `src/modules/<domain>`，不要把业务逻辑塞进 `core` / `shared` / `infrastructure`。
-- 新的全局能力优先检查是否真的跨模块复用，否则保持在业务模块内部。
-- 生产环境默认关闭 `DB_SYNC`，数据结构演进建议逐步切换到 migration。
+```ts
+import { Controller, Get } from "@nestjs/common";
+import { Public } from "./common/auth/public.decorator";
+
+@Controller("demo")
+export class DemoController {
+  @Public()
+  @Get("ping")
+  ping() {
+    return "pong";
+  }
+}
+```
+
+### 角色控制 `@Roles`
+
+`@Roles()` 配合全局 `RolesGuard` 使用，只要当前用户的 `roles` 里命中任意一个角色就能通过。
+
+```ts
+import { Controller, Get } from "@nestjs/common";
+import { Roles } from "./common/auth/roles.decorator";
+
+@Controller("admin")
+export class AdminController {
+  @Roles("admin", "super-admin")
+  @Get("users")
+  listUsers() {
+    return "ok";
+  }
+}
+```
+
+### 当前登录用户 `@CurrentUser`
+
+`@CurrentUser()` 直接从请求里取出已经解析好的用户信息，常用字段有 `userId`、`sessionId`、`username`、`roles`、`permissions`。
+
+```ts
+import { Controller, Get } from "@nestjs/common";
+import { type AuthUser } from "./common/auth/auth-user";
+import { CurrentUser } from "./common/auth/current-user.decorator";
+
+@Controller("me")
+export class MeController {
+  @Get()
+  profile(@CurrentUser() user: AuthUser) {
+    return {
+      userId: user.userId,
+      username: user.username,
+      roles: user.roles,
+      permissions: user.permissions,
+    };
+  }
+}
+```
+
+### 刷新令牌守卫
+
+刷新接口不是走普通 access token，而是单独挂 `JwtRefreshGuard`。
+
+```ts
+import { Controller, Post, Req, UseGuards } from "@nestjs/common";
+import type { Request } from "express";
+import { type RefreshTokenUser } from "./common/auth/auth-user";
+import { CurrentUser } from "./common/auth/current-user.decorator";
+import { JwtRefreshGuard } from "./common/auth/jwt-refresh.guard";
+import { Public } from "./common/auth/public.decorator";
+
+@Controller("auth")
+export class AuthController {
+  @Public()
+  @UseGuards(JwtRefreshGuard)
+  @Post("refresh")
+  refresh(@CurrentUser() user: RefreshTokenUser, @Req() request: Request) {
+    return { user, ip: request.ip };
+  }
+}
+```
+
+### 分页 DTO 怎么复用
+
+列表查询 DTO 直接继承 `PageQueryDto`，服务层用 `resolvePageQuery()` 统一拿 `page`、`pageSize`、`skip`。
+
+```ts
+import { IsOptional, IsString } from "class-validator";
+import { PageQueryDto } from "./common/http/page-query.dto";
+
+export class QueryUsersDto extends PageQueryDto {
+  @IsOptional()
+  @IsString()
+  nickname?: string;
+}
+```
+
+```ts
+const { page, pageSize, skip } = resolvePageQuery(query);
+```
+
+### 统一响应格式
+
+成功响应：
+
+```json
+{
+  "code": 0,
+  "data": {},
+  "timestamp": "2026-03-21T14:00:00.000Z"
+}
+```
+
+失败响应：
+
+```json
+{
+  "code": 400,
+  "message": "参数校验失败",
+  "data": null,
+  "timestamp": "2026-03-21T14:00:00.000Z"
+}
+```

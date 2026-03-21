@@ -3,7 +3,7 @@ import { AppModule } from "./app.module";
 import {
   resolveApplicationPort,
   setupApplication,
-} from "./config/bootstrap.config";
+} from "./common/config/bootstrap";
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
