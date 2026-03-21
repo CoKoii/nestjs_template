@@ -22,8 +22,6 @@ export class PageQueryDto {
 export interface PageResult<T> {
   items: T[];
   total: number;
-  page: number;
-  pageSize: number;
 }
 
 export const resolvePageQuery = (query: PageQueryDto) => {

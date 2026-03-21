@@ -7,20 +7,16 @@ export type TokenType = typeof ACCESS_TOKEN_TYPE | typeof REFRESH_TOKEN_TYPE;
 
 interface BaseTokenPayload {
   sub: number;
+  sid: string;
   type: TokenType;
 }
 
 export interface AuthTokenPayload extends BaseTokenPayload {
   type: typeof ACCESS_TOKEN_TYPE;
-  sid: string;
-  username: string;
-  roles: string[];
-  permissions: string[];
 }
 
 export interface RefreshTokenPayload extends BaseTokenPayload {
   type: typeof REFRESH_TOKEN_TYPE;
-  sid: string;
 }
 
 export type JwtTokenPayload = AuthTokenPayload | RefreshTokenPayload;
@@ -42,20 +38,6 @@ export interface RefreshTokenUser {
 export type RequestWithUser<TUser = AuthUser> = Omit<Request, "user"> & {
   user: TUser;
 };
-
-export const toAuthUser = ({
-  sub,
-  sid,
-  username,
-  roles,
-  permissions,
-}: AuthTokenPayload): AuthUser => ({
-  userId: sub,
-  sessionId: sid,
-  username,
-  roles,
-  permissions,
-});
 
 export const toRefreshTokenUser = (
   { sub, sid }: RefreshTokenPayload,

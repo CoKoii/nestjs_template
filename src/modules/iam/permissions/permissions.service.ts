@@ -35,7 +35,7 @@ export class PermissionsService {
   // --------------------------------------------------------------------------------------------------
   // 获取权限列表
   async list(query: QueryPermissionsDto): Promise<PageResult<Permission>> {
-    const { page, pageSize, skip } = resolvePageQuery(query);
+    const { pageSize, skip } = resolvePageQuery(query);
     const code = query.code?.trim();
     const queryBuilder = this.permissionRepository
       .createQueryBuilder("permission")
@@ -50,7 +50,7 @@ export class PermissionsService {
     }
 
     const [items, total] = await queryBuilder.getManyAndCount();
-    return { items, total, page, pageSize };
+    return { items, total };
   }
   // --------------------------------------------------------------------------------------------------
 

@@ -10,6 +10,7 @@ import {
 } from "@nestjs/common";
 import { type AuthUser } from "../../../common/auth/auth-user";
 import { CurrentUser } from "../../../common/auth/current-user.decorator";
+import { Roles } from "../../../common/auth/roles.decorator";
 import { CreatePermissionDto } from "./dto/create-permission.dto";
 import { QueryPermissionsDto } from "./dto/query-permissions.dto";
 import { UpdatePermissionDto } from "./dto/update-permission.dto";
@@ -29,6 +30,7 @@ export class PermissionsController {
 
   // -------------------------
   // 创建权限
+  @Roles("admin")
   @Post()
   create(@Body() createPermissionDto: CreatePermissionDto) {
     return this.permissionsService.create(createPermissionDto);
@@ -37,6 +39,7 @@ export class PermissionsController {
 
   // -------------------------
   // 获取权限列表
+  @Roles("admin")
   @Get()
   list(@Query() query: QueryPermissionsDto) {
     return this.permissionsService.list(query);
@@ -45,6 +48,7 @@ export class PermissionsController {
 
   // -------------------------
   // 更新权限
+  @Roles("admin")
   @Put(":id")
   update(
     @Param("id", ParseIntPipe) id: number,

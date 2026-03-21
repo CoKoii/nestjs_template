@@ -6,13 +6,16 @@ import {
   ACCESS_TOKEN_TYPE,
   type AuthTokenPayload,
   type AuthUser,
-  toAuthUser,
 } from "../../../common/auth/auth-user";
 import { getAuthEnvironment } from "../../../common/config/env";
+import { AuthService } from "./auth.service";
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(configService: ConfigService) {
+  constructor(
+    configService: ConfigService,
+    private readonly authService: AuthService,
+  ) {
     const authEnvironment = getAuthEnvironment(configService);
 
     super({
@@ -22,10 +25,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(payload: AuthTokenPayload): AuthUser {
-    if (payload.type !== ACCESS_TOKEN_TYPE) {
+  async validate(payload: AuthTokenPayload): Promise<AuthUser> {
+    if (payload.type !== ACCESS_TOKEN_TYPE || !payload.sid.trim()) {
       throw new UnauthorizedException("未登录或登录已过期");
     }
-    return toAuthUser(payload);
+
+    return this.authService.resolveAuthUser(payload.sub, payload.sid);
   }
 }

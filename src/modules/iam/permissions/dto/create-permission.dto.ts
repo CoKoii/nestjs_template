@@ -9,7 +9,7 @@ import {
 export class CreatePermissionDto {
   @IsString({ message: "权限代码必须为字符串" })
   @Matches(/^\S+$/, { message: "权限代码不能包含空格" })
-  @Length(1, 20, { message: "权限代码长度必须在1到20个字符之间" })
+  @Length(1, 50, { message: "权限代码长度必须在1到50个字符之间" })
   code!: string;
 
   @IsOptional()

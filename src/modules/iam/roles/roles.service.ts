@@ -63,14 +63,12 @@ export class RolesService {
   // --------------------------------------------------------------------------------------------------
   // 获取角色列表
   async list(query: QueryRolesDto): Promise<PageResult<Role>> {
-    const { page, pageSize, skip } = resolvePageQuery(query);
+    const { pageSize, skip } = resolvePageQuery(query);
     const roleName = query.roleName?.trim();
     const queryBuilder = this.roleRepository
       .createQueryBuilder("role")
-      .leftJoinAndSelect("role.permissions", "permission")
-      .orderBy("role.id", "DESC")
-      .skip(skip)
-      .take(pageSize);
+      .select("role.id", "id")
+      .orderBy("role.id", "DESC");
 
     if (roleName) {
       queryBuilder.andWhere("role.roleName LIKE :roleName", {
@@ -78,8 +76,27 @@ export class RolesService {
       });
     }
 
-    const [items, total] = await queryBuilder.getManyAndCount();
-    return { items, total, page, pageSize };
+    const total = await queryBuilder.clone().getCount();
+    const ids = (
+      await queryBuilder
+        .clone()
+        .skip(skip)
+        .take(pageSize)
+        .getRawMany<{ id: number | string }>()
+    ).map(({ id }) => Number(id));
+
+    if (!ids.length) {
+      return { items: [], total };
+    }
+
+    const items = await this.roleRepository
+      .createQueryBuilder("role")
+      .leftJoinAndSelect("role.permissions", "permission")
+      .where("role.id IN (:...ids)", { ids })
+      .orderBy("role.id", "DESC")
+      .getMany();
+
+    return { items, total };
   }
   // --------------------------------------------------------------------------------------------------
 

@@ -20,16 +20,13 @@ export class UsersService {
   // --------------------------------------------------------------------------------------------------
   // 获取用户列表
   async list(query: QueryUsersDto): Promise<PageResult<User>> {
-    const { page, pageSize, skip } = resolvePageQuery(query);
+    const { pageSize, skip } = resolvePageQuery(query);
     const nickname = query.nickname?.trim();
     const queryBuilder = this.userRepository
       .createQueryBuilder("user")
-      .distinct(true)
-      .leftJoinAndSelect("user.profile", "profile")
-      .leftJoinAndSelect("user.roles", "role")
-      .orderBy("user.id", "DESC")
-      .skip(skip)
-      .take(pageSize);
+      .leftJoin("user.profile", "profile")
+      .select("user.id", "id")
+      .orderBy("user.id", "DESC");
 
     if (nickname) {
       queryBuilder.andWhere("profile.nickname LIKE :nickname", {
@@ -37,8 +34,28 @@ export class UsersService {
       });
     }
 
-    const [items, total] = await queryBuilder.getManyAndCount();
-    return { items, total, page, pageSize };
+    const total = await queryBuilder.clone().getCount();
+    const ids = (
+      await queryBuilder
+        .clone()
+        .skip(skip)
+        .take(pageSize)
+        .getRawMany<{ id: number | string }>()
+    ).map(({ id }) => Number(id));
+
+    if (!ids.length) {
+      return { items: [], total };
+    }
+
+    const items = await this.userRepository
+      .createQueryBuilder("user")
+      .leftJoinAndSelect("user.profile", "profile")
+      .leftJoinAndSelect("user.roles", "role")
+      .where("user.id IN (:...ids)", { ids })
+      .orderBy("user.id", "DESC")
+      .getMany();
+
+    return { items, total };
   }
   // --------------------------------------------------------------------------------------------------
 

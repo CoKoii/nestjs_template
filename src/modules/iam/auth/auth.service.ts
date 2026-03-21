@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  UnauthorizedException,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { JwtSignOptions } from "@nestjs/jwt";
@@ -43,23 +44,29 @@ export class AuthService {
   ) {}
 
   // --------------------------------------------------------------------------------------------------
-  // 创建用户认证查询构造器
+  // 创建用户查询构造器
   private createUserAuthQueryBuilder() {
-    return this.users
-      .createQueryBuilder("user")
-      .leftJoinAndSelect("user.roles", "role")
-      .leftJoinAndSelect("role.permissions", "permission");
+    return this.users.createQueryBuilder("user");
   }
   // --------------------------------------------------------------------------------------------------
 
   // --------------------------------------------------------------------------------------------------
-  // 创建会话认证查询构造器
+  // 创建会话鉴权查询构造器
   private createSessionAuthQueryBuilder() {
     return this.authSessions
       .createQueryBuilder("session")
       .leftJoinAndSelect("session.user", "user")
       .leftJoinAndSelect("user.roles", "role")
       .leftJoinAndSelect("role.permissions", "permission");
+  }
+  // --------------------------------------------------------------------------------------------------
+
+  // --------------------------------------------------------------------------------------------------
+  // 创建会话校验查询构造器
+  private createSessionValidationQueryBuilder() {
+    return this.authSessions
+      .createQueryBuilder("session")
+      .leftJoinAndSelect("session.user", "user");
   }
   // --------------------------------------------------------------------------------------------------
 
@@ -92,26 +99,13 @@ export class AuthService {
   // --------------------------------------------------------------------------------------------------
   // 构建访问令牌载荷
   private buildAccessTokenPayload(
-    user: User,
+    userId: number,
     sessionId: string,
   ): AuthTokenPayload {
-    const activeRoles = user.roles?.filter((role) => role.status) ?? [];
-    const roles = activeRoles.map((role) => role.roleName);
-    const permissions = Array.from(
-      new Set(
-        activeRoles
-          .flatMap((role) => role.permissions ?? [])
-          .filter((permission) => permission?.status)
-          .map((permission) => permission.code),
-      ),
-    );
     return {
       type: ACCESS_TOKEN_TYPE,
-      sub: user.id,
+      sub: userId,
       sid: sessionId,
-      username: user.username,
-      roles,
-      permissions,
     };
   }
   // --------------------------------------------------------------------------------------------------
@@ -145,6 +139,13 @@ export class AuthService {
   // --------------------------------------------------------------------------------------------------
 
   // --------------------------------------------------------------------------------------------------
+  // 抛出访问令牌无效异常
+  private throwInvalidAccessToken(): never {
+    throw new UnauthorizedException("未登录或登录已过期");
+  }
+  // --------------------------------------------------------------------------------------------------
+
+  // --------------------------------------------------------------------------------------------------
   // 校验用户状态
   private ensureUserIsActive(user: Pick<User, "status">): void {
     if (!user.status) {
@@ -171,18 +172,42 @@ export class AuthService {
   // --------------------------------------------------------------------------------------------------
 
   // --------------------------------------------------------------------------------------------------
+  // 构建当前认证用户
+  private buildAuthUser(user: User, sessionId: string): AuthUser {
+    const activeRoles = user.roles?.filter((role) => role.status) ?? [];
+    const roles = activeRoles.map((role) => role.roleName);
+    const permissions = Array.from(
+      new Set(
+        activeRoles
+          .flatMap((role) => role.permissions ?? [])
+          .filter((permission) => permission?.status)
+          .map((permission) => permission.code),
+      ),
+    );
+
+    return {
+      userId: user.id,
+      sessionId,
+      username: user.username,
+      roles,
+      permissions,
+    };
+  }
+  // --------------------------------------------------------------------------------------------------
+
+  // --------------------------------------------------------------------------------------------------
   // 签发访问令牌和刷新令牌
   private async issueTokens(
-    user: User,
+    userId: number,
     sessionId: string = randomUUID(),
   ): Promise<IssuedAuthTokens> {
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(
-        this.buildAccessTokenPayload(user, sessionId),
+        this.buildAccessTokenPayload(userId, sessionId),
         this.getAccessTokenOptions(),
       ),
       this.jwtService.signAsync(
-        this.buildRefreshTokenPayload(user.id, sessionId),
+        this.buildRefreshTokenPayload(userId, sessionId),
         this.getRefreshTokenOptions(),
       ),
     ]);
@@ -229,7 +254,7 @@ export class AuthService {
   // --------------------------------------------------------------------------------------------------
   // 查询刷新会话
   private findSessionForRefresh(userId: number, sessionId: string) {
-    return this.createSessionAuthQueryBuilder()
+    return this.createSessionValidationQueryBuilder()
       .addSelect("session.refreshTokenHash")
       .where("session.id = :sessionId", { sessionId })
       .andWhere("session.userId = :userId", { userId })
@@ -259,7 +284,7 @@ export class AuthService {
     context: AuthRequestContext,
     sessionId?: string,
   ): Promise<AuthTokens> {
-    const tokens = await this.issueTokens(user, sessionId);
+    const tokens = await this.issueTokens(user.id, sessionId);
     await this.saveSession(user.id, tokens, context);
     return this.toAuthTokens(tokens);
   }
@@ -301,6 +326,30 @@ export class AuthService {
       this.throwInvalidRefreshToken();
     }
     return session;
+  }
+  // --------------------------------------------------------------------------------------------------
+
+  // --------------------------------------------------------------------------------------------------
+  // 加载当前认证用户
+  async resolveAuthUser(userId: number, sessionId: string): Promise<AuthUser> {
+    const session = await this.createSessionAuthQueryBuilder()
+      .where("session.id = :sessionId", { sessionId })
+      .andWhere("session.userId = :userId", { userId })
+      .andWhere("session.expiresAt > :now", { now: new Date() })
+      .getOne();
+
+    if (!session?.user) {
+      this.throwInvalidAccessToken();
+    }
+
+    this.ensureUserIsActive(session.user);
+
+    await this.authSessions.update(
+      { id: session.id, userId: session.userId },
+      { lastUsedAt: new Date() },
+    );
+
+    return this.buildAuthUser(session.user, session.id);
   }
   // --------------------------------------------------------------------------------------------------
 

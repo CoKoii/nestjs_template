@@ -7,10 +7,12 @@ import {
   Put,
   Query,
 } from "@nestjs/common";
+import { Roles } from "../../../common/auth/roles.decorator";
 import { QueryUsersDto } from "./dto/query-users.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { UsersService } from "./users.service";
 
+@Roles("admin")
 @Controller("users")
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
