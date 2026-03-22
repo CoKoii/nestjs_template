@@ -11,6 +11,8 @@ export const DEFAULT_CACHE_NAMESPACE = "cache";
 export const DEFAULT_DB_PORT = 3306;
 export const DEFAULT_REDIS_PORT = 6379;
 export const DEFAULT_REDIS_DB = 0;
+export const DEFAULT_MAIL_PORT = 587;
+export const DEFAULT_MAIL_FROM_NAME = "NestJS Template";
 
 export const ENV = {
   NODE_ENV: "NODE_ENV",
@@ -30,6 +32,15 @@ export const ENV = {
   REDIS_PASSWORD: "REDIS_PASSWORD",
   REDIS_DB: "REDIS_DB",
   REDIS_KEY_PREFIX: "REDIS_KEY_PREFIX",
+  MAIL_ENABLED: "MAIL_ENABLED",
+  MAIL_HOST: "MAIL_HOST",
+  MAIL_PORT: "MAIL_PORT",
+  MAIL_SECURE: "MAIL_SECURE",
+  MAIL_IGNORE_TLS: "MAIL_IGNORE_TLS",
+  MAIL_USER: "MAIL_USER",
+  MAIL_PASS: "MAIL_PASS",
+  MAIL_FROM_NAME: "MAIL_FROM_NAME",
+  MAIL_FROM_ADDRESS: "MAIL_FROM_ADDRESS",
   JWT_ACCESS_SECRET: "JWT_ACCESS_SECRET",
   JWT_ACCESS_EXPIRES_IN: "JWT_ACCESS_EXPIRES_IN",
   JWT_REFRESH_SECRET: "JWT_REFRESH_SECRET",
@@ -119,6 +130,18 @@ const createRedisEnvironment = (get: EnvironmentGetter) => ({
   keyPrefix: parseOptionalString(get(ENV.REDIS_KEY_PREFIX)),
 });
 
+const createMailEnvironment = (get: EnvironmentGetter) => ({
+  enabled: parseBoolean(get(ENV.MAIL_ENABLED)),
+  host: parseOptionalString(get(ENV.MAIL_HOST)),
+  port: parseNumber(get(ENV.MAIL_PORT), DEFAULT_MAIL_PORT),
+  secure: parseBoolean(get(ENV.MAIL_SECURE)),
+  ignoreTls: parseBoolean(get(ENV.MAIL_IGNORE_TLS)),
+  user: parseOptionalString(get(ENV.MAIL_USER)),
+  pass: parseOptionalString(get(ENV.MAIL_PASS)),
+  fromName: parseString(get(ENV.MAIL_FROM_NAME), DEFAULT_MAIL_FROM_NAME),
+  fromAddress: parseOptionalString(get(ENV.MAIL_FROM_ADDRESS)),
+});
+
 const createAuthEnvironment = (get: EnvironmentGetter) => ({
   accessTokenSecret: parseString(get(ENV.JWT_ACCESS_SECRET)),
   accessTokenExpiresIn: parseString(get(ENV.JWT_ACCESS_EXPIRES_IN)),
@@ -181,6 +204,32 @@ export const validationSchema = Joi.object({
   [ENV.REDIS_PASSWORD]: Joi.string().allow("").optional(),
   [ENV.REDIS_DB]: Joi.number().integer().min(0).default(DEFAULT_REDIS_DB),
   [ENV.REDIS_KEY_PREFIX]: Joi.string().allow("").optional(),
+  [ENV.MAIL_ENABLED]: Joi.boolean()
+    .truthy("true")
+    .falsy("false")
+    .default(false),
+  [ENV.MAIL_HOST]: Joi.when(ENV.MAIL_ENABLED, {
+    is: true,
+    then: Joi.string().trim().required(),
+    otherwise: Joi.string().allow("").optional(),
+  }),
+  [ENV.MAIL_PORT]: Joi.number().port().default(DEFAULT_MAIL_PORT),
+  [ENV.MAIL_SECURE]: Joi.boolean().truthy("true").falsy("false").default(false),
+  [ENV.MAIL_IGNORE_TLS]: Joi.boolean()
+    .truthy("true")
+    .falsy("false")
+    .default(false),
+  [ENV.MAIL_USER]: Joi.string().allow("").optional(),
+  [ENV.MAIL_PASS]: Joi.string().allow("").optional(),
+  [ENV.MAIL_FROM_NAME]: Joi.string().trim().default(DEFAULT_MAIL_FROM_NAME),
+  [ENV.MAIL_FROM_ADDRESS]: Joi.when(ENV.MAIL_ENABLED, {
+    is: true,
+    then: Joi.string()
+      .trim()
+      .email({ tlds: { allow: false } })
+      .required(),
+    otherwise: Joi.string().allow("").optional(),
+  }),
   [ENV.JWT_ACCESS_SECRET]: Joi.string().required(),
   [ENV.JWT_ACCESS_EXPIRES_IN]: Joi.string().trim().required(),
   [ENV.JWT_REFRESH_SECRET]: Joi.string().required(),
@@ -207,6 +256,9 @@ export const getDatabaseEnvironmentFromProcess = () =>
 export const getRedisEnvironment = (
   configService: Pick<ConfigService, "get">,
 ) => createRedisEnvironment(withConfigService(configService));
+
+export const getMailEnvironment = (configService: Pick<ConfigService, "get">) =>
+  createMailEnvironment(withConfigService(configService));
 
 export const getAuthEnvironment = (configService: Pick<ConfigService, "get">) =>
   createAuthEnvironment(withConfigService(configService));

@@ -10,6 +10,7 @@ import { DatabaseModule } from "./common/database/database.module";
 import { AllExceptionFilter } from "./common/http/exception.filter";
 import { ResponseInterceptor } from "./common/http/response.interceptor";
 import { LoggingModule } from "./common/logging/logging.module";
+import { AppMailerModule } from "./common/mailer/mailer.module";
 import { IamModule } from "./modules/iam/iam.module";
 
 @Module({
@@ -22,6 +23,7 @@ import { IamModule } from "./modules/iam/iam.module";
     }),
     ScheduleModule.forRoot(),
     LoggingModule,
+    AppMailerModule,
     DatabaseModule,
     AppCacheModule,
     IamModule,

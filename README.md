@@ -43,6 +43,16 @@ JWT_ACCESS_EXPIRES_IN=1d
 JWT_REFRESH_SECRET=refresh-secret
 JWT_REFRESH_EXPIRES_IN=7d
 
+MAIL_ENABLED=false
+MAIL_PORT=587
+MAIL_SECURE=false
+MAIL_IGNORE_TLS=false
+MAIL_FROM_NAME=NestJS Template
+MAIL_HOST=smtp.example.com
+MAIL_USER=
+MAIL_PASS=
+MAIL_FROM_ADDRESS=no-reply@example.com
+
 LOG_ON=true
 LOG_LEVEL=info
 ```
@@ -109,6 +119,54 @@ export class DemoService {
   }
 }
 ```
+
+### 邮件服务怎么配
+
+邮件能力已经被接成全局基础设施模块 `AppMailerModule`，配置方式和数据库、缓存、日志保持一致，统一走 `common/config/env.ts`。
+
+主要环境变量：
+
+- `MAIL_ENABLED`
+- `MAIL_HOST`
+- `MAIL_PORT`
+- `MAIL_SECURE`
+- `MAIL_IGNORE_TLS`
+- `MAIL_USER`
+- `MAIL_PASS`
+- `MAIL_FROM_NAME`
+- `MAIL_FROM_ADDRESS`
+
+构建模板时，`src/common/mailer/templates` 会跟随 `nest build` 一起复制到 `dist`，开发模式也会监听模板文件变化。
+
+### 邮件服务怎么用
+
+直接注入项目里的 `AppMailerService`，不要在业务模块里直接拼第三方 mailer 配置。
+
+```ts
+import { Injectable } from "@nestjs/common";
+import { AppMailerService } from "./common/mailer/mailer.service";
+
+@Injectable()
+export class DemoMailService {
+  constructor(private readonly mailer: AppMailerService) {}
+
+  async sendWelcomeMail(to: string) {
+    await this.mailer.sendTemplateMail({
+      to,
+      subject: "Welcome",
+      template: "welcome",
+      context: {
+        title: "Welcome to NestJS Template",
+        message: "Your mailer service is ready.",
+        actionLabel: "Open Dashboard",
+        actionUrl: "https://example.com/dashboard",
+      },
+    });
+  }
+}
+```
+
+如果 `MAIL_ENABLED=false`，应用仍然可以启动，但一旦业务代码实际调用发信，会明确抛出 `邮件服务未启用`，避免误以为邮件已经发出。
 
 ### 公开接口 `@Public`
 
