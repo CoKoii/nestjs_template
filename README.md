@@ -18,7 +18,7 @@ pnpm prod
 - `.env.development`
 - `.env.production`
 
-常用项：
+最小环境变量示例：
 
 ```env
 PORT=3000
@@ -30,189 +30,95 @@ DB_PASSWORD=123456
 DB_DATABASE=nestjs_demo
 DB_SYNC=false
 
-REDIS_HOST=127.0.0.1
-REDIS_PORT=6379
-REDIS_DB=0
-REDIS_KEY_PREFIX=nest:
-
-CACHE_TTL_MS=60000
-CACHE_NAMESPACE=cache
-
 JWT_ACCESS_SECRET=access-secret
 JWT_ACCESS_EXPIRES_IN=1d
 JWT_REFRESH_SECRET=refresh-secret
 JWT_REFRESH_EXPIRES_IN=7d
 
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+REDIS_DB=0
+REDIS_KEY_PREFIX=nest:
+CACHE_TTL_MS=60000
+CACHE_NAMESPACE=cache
+
 MAIL_ENABLED=false
+MAIL_HOST=smtp.example.com
 MAIL_PORT=587
 MAIL_SECURE=false
 MAIL_IGNORE_TLS=false
-MAIL_FROM_NAME=NestJS Template
-MAIL_HOST=smtp.example.com
 MAIL_USER=
 MAIL_PASS=
+MAIL_FROM_NAME=NestJS Template
 MAIL_FROM_ADDRESS=no-reply@example.com
 
 LOG_ON=true
 LOG_LEVEL=info
 ```
 
-## 功能示例
+## 集成功能最小示例
 
-### 缓存怎么配
+下面的示例只保留核心写法，`import` 路径按你自己的文件位置调整即可。
 
-缓存模块已经是全局模块，只要在 `AppModule` 引一次 `AppCacheModule`，后面的业务模块里直接注入 `CACHE_MANAGER` 即可，不用重复注册。
+项目默认已经在 `AppModule` 里接好这些基础设施：
 
-默认缓存配置等价于：
+- 全局登录守卫 `JwtAuthGuard`
+- 全局角色守卫 `RolesGuard`
+- 全局缓存模块 `AppCacheModule`
+- 全局邮件模块 `AppMailerModule`
 
-```ts
-return {
-  ttl: cacheEnvironment.ttl,
-  namespace: cacheEnvironment.namespace,
-  stores: new KeyvRedisStore(redisClient, redisEnvironment.keyPrefix ?? ""),
-};
-```
+### `@Public()`：公开接口
 
-对应环境变量主要是：
-
-- `CACHE_TTL_MS`
-- `CACHE_NAMESPACE`
-- `REDIS_HOST`
-- `REDIS_PORT`
-- `REDIS_DB`
-- `REDIS_KEY_PREFIX`
-
-### cache-manager 怎么用
+默认所有接口都要先通过登录校验。给方法加 `@Public()`，就会跳过全局 `JwtAuthGuard`。
 
 ```ts
-import { CACHE_MANAGER } from "@nestjs/cache-manager";
-import { Inject, Injectable } from "@nestjs/common";
-import type { Cache } from "cache-manager";
-
-@Injectable()
-export class DemoService {
-  constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache) {}
-
-  async getUser(id: number) {
-    const key = `user:${id}`;
-
-    const cached = await this.cache.get<{ id: number; username: string }>(key);
-    if (cached) {
-      return cached;
-    }
-
-    const user = { id, username: "admin001" };
-    await this.cache.set(key, user, 5 * 60_000);
-
-    return user;
-  }
-
-  async getUserPermissions(userId: number) {
-    return this.cache.wrap(`user:${userId}:permissions`, async () => [
-      "user:list",
-      "user:update",
-    ]);
-  }
-
-  async clearUserCache(id: number) {
-    await this.cache.del(`user:${id}`);
-  }
-}
-```
-
-### 邮件服务怎么配
-
-邮件能力已经被接成全局基础设施模块 `AppMailerModule`，配置方式和数据库、缓存、日志保持一致，统一走 `common/config/env.ts`。
-
-主要环境变量：
-
-- `MAIL_ENABLED`
-- `MAIL_HOST`
-- `MAIL_PORT`
-- `MAIL_SECURE`
-- `MAIL_IGNORE_TLS`
-- `MAIL_USER`
-- `MAIL_PASS`
-- `MAIL_FROM_NAME`
-- `MAIL_FROM_ADDRESS`
-
-构建模板时，`src/common/mailer/templates` 会跟随 `nest build` 一起复制到 `dist`，开发模式也会监听模板文件变化。
-
-### 邮件服务怎么用
-
-直接注入项目里的 `AppMailerService`，不要在业务模块里直接拼第三方 mailer 配置。
-
-```ts
-import { Injectable } from "@nestjs/common";
-import { AppMailerService } from "./common/mailer/mailer.service";
-
-@Injectable()
-export class DemoMailService {
-  constructor(private readonly mailer: AppMailerService) {}
-
-  async sendWelcomeMail(to: string) {
-    await this.mailer.sendTemplateMail({
-      to,
-      subject: "Welcome",
-      template: "welcome",
-      context: {
-        title: "Welcome to NestJS Template",
-        message: "Your mailer service is ready.",
-        actionLabel: "Open Dashboard",
-        actionUrl: "https://example.com/dashboard",
-      },
-    });
-  }
-}
-```
-
-如果 `MAIL_ENABLED=false`，应用仍然可以启动，但一旦业务代码实际调用发信，会明确抛出 `邮件服务未启用`，避免误以为邮件已经发出。
-
-### 公开接口 `@Public`
-
-`@Public()` 会跳过全局 `JwtAuthGuard`，适合登录、注册、健康检查这类不需要登录的接口。
-
-```ts
-import { Controller, Get } from "@nestjs/common";
-import { Public } from "./common/auth/public.decorator";
-
-@Controller("demo")
-export class DemoController {
+@Controller("auth")
+export class AuthController {
   @Public()
-  @Get("ping")
-  ping() {
-    return "pong";
+  @Post("login")
+  login() {
+    return { accessToken: "...", refreshToken: "..." };
   }
 }
 ```
 
-### 角色控制 `@Roles`
+适合放在登录、注册、健康检查、验证码发送这类接口上。
 
-`@Roles()` 配合全局 `RolesGuard` 使用，只要当前用户的 `roles` 里命中任意一个角色就能通过。
+### `@Roles()`：角色限制
+
+`@Roles()` 是在“已登录”的基础上再做一层角色判断。当前用户的 `roles` 里命中任意一个角色就能通过。
 
 ```ts
-import { Controller, Get } from "@nestjs/common";
-import { Roles } from "./common/auth/roles.decorator";
-
-@Controller("admin")
-export class AdminController {
-  @Roles("admin", "super-admin")
-  @Get("users")
-  listUsers() {
-    return "ok";
+@Controller("users")
+export class UsersController {
+  @Roles("admin")
+  @Get()
+  list() {
+    return ["user-1", "user-2"];
   }
 }
 ```
 
-### 当前登录用户 `@CurrentUser`
-
-`@CurrentUser()` 直接从请求里取出已经解析好的用户信息，常用字段有 `userId`、`sessionId`、`username`、`roles`、`permissions`。
+如果整个控制器都只允许某个角色访问，也可以直接写在类上：
 
 ```ts
-import { Controller, Get } from "@nestjs/common";
-import { type AuthUser } from "./common/auth/auth-user";
-import { CurrentUser } from "./common/auth/current-user.decorator";
+@Roles("admin")
+@Controller("roles")
+export class RolesController {
+  @Get()
+  list() {
+    return ["admin", "editor"];
+  }
+}
+```
 
+写在类上以后，这个控制器里的所有接口都会生效。
+
+### `@CurrentUser()`：拿当前登录用户
+
+JWT 解析成功后，用户信息会挂到 `request.user` 上。业务代码直接用 `@CurrentUser()` 取，不用手动读 `req.user`。
+
+```ts
 @Controller("me")
 export class MeController {
   @Get()
@@ -227,37 +133,117 @@ export class MeController {
 }
 ```
 
-### 刷新令牌守卫
+### `JwtRefreshGuard`：刷新令牌接口
 
-刷新接口不是走普通 access token，而是单独挂 `JwtRefreshGuard`。
+刷新 token 不是走普通 access token，而是单独挂 `JwtRefreshGuard`。
 
 ```ts
-import { Controller, Post, Req, UseGuards } from "@nestjs/common";
-import type { Request } from "express";
-import { type RefreshTokenUser } from "./common/auth/auth-user";
-import { CurrentUser } from "./common/auth/current-user.decorator";
-import { JwtRefreshGuard } from "./common/auth/jwt-refresh.guard";
-import { Public } from "./common/auth/public.decorator";
-
 @Controller("auth")
 export class AuthController {
   @Public()
   @UseGuards(JwtRefreshGuard)
   @Post("refresh")
-  refresh(@CurrentUser() user: RefreshTokenUser, @Req() request: Request) {
-    return { user, ip: request.ip };
+  refresh(@CurrentUser() user: RefreshTokenUser) {
+    return {
+      userId: user.userId,
+      sessionId: user.sessionId,
+      refreshToken: user.refreshToken,
+    };
   }
 }
 ```
 
-### 分页 DTO 怎么复用
+### 邮件发送：最小模板示例
 
-列表查询 DTO 直接继承 `PageQueryDto`，服务层用 `resolvePageQuery()` 统一拿 `page`、`pageSize`、`skip`。
+先打开邮件配置：
+
+```env
+MAIL_ENABLED=true
+MAIL_HOST=smtp.example.com
+MAIL_PORT=587
+MAIL_USER=your-account
+MAIL_PASS=your-password
+MAIL_FROM_ADDRESS=no-reply@example.com
+```
+
+然后在业务服务里直接注入 `AppMailerService`：
 
 ```ts
-import { IsOptional, IsString } from "class-validator";
-import { PageQueryDto } from "./common/http/page-query.dto";
+@Injectable()
+export class NoticeService {
+  constructor(private readonly mailer: AppMailerService) {}
 
+  async sendWelcomeMail(to: string) {
+    await this.mailer.sendTemplateMail({
+      to,
+      subject: "Welcome",
+      template: "welcome",
+      context: {
+        title: "Welcome to NestJS Template",
+        message: "Your account is ready.",
+      },
+    });
+  }
+}
+```
+
+说明：
+
+- `template: "welcome"` 对应 `src/common/mailer/templates/welcome.hbs`
+- `nest build` 会自动复制模板文件，`nest-cli.json` 里已经配好 `assets`
+- 如果 `MAIL_ENABLED=false`，应用可以启动，但真正调用发信时会抛出 `邮件服务未启用`
+
+### 缓存操作：最小读写示例
+
+缓存模块已经是全局模块，不用在业务模块重复注册。直接注入 `CACHE_MANAGER` 即可。
+
+```ts
+@Injectable()
+export class UserCacheService {
+  constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache) {}
+
+  async getUser(id: number) {
+    const key = `user:${id}`;
+
+    const cached = await this.cache.get<{ id: number; username: string }>(key);
+    if (cached) return cached;
+
+    const user = { id, username: `user-${id}` };
+    await this.cache.set(key, user, 60_000);
+
+    return user;
+  }
+
+  async clearUser(id: number) {
+    await this.cache.del(`user:${id}`);
+  }
+}
+```
+
+常用环境变量：
+
+```env
+REDIS_HOST=127.0.0.1
+REDIS_PORT=6379
+REDIS_DB=0
+REDIS_KEY_PREFIX=nest:
+CACHE_TTL_MS=60000
+CACHE_NAMESPACE=cache
+```
+
+如果你想把“查不到就回源再写缓存”也写得更短，可以直接用 `wrap`：
+
+```ts
+return this.cache.wrap(`user:${id}:permissions`, async () => {
+  return ["user:list", "user:update"];
+});
+```
+
+### 分页 DTO：列表接口复用
+
+列表查询 DTO 直接继承 `PageQueryDto`，服务层统一拿 `page`、`pageSize`、`skip`。
+
+```ts
 export class QueryUsersDto extends PageQueryDto {
   @IsOptional()
   @IsString()
@@ -269,7 +255,7 @@ export class QueryUsersDto extends PageQueryDto {
 const { page, pageSize, skip } = resolvePageQuery(query);
 ```
 
-### 统一响应格式
+## 统一响应格式
 
 成功响应：
 
