@@ -15,7 +15,7 @@ export class Permission {
   id!: number;
   @Column({ comment: "权限码", length: 50, unique: true })
   code!: string;
-  @Column("varchar", { comment: "权限描述", length: 255, nullable: true })
+  @Column({ comment: "权限描述", length: 255, nullable: true })
   description!: string | null;
   @Column({ comment: "状态", default: true })
   status!: boolean;
