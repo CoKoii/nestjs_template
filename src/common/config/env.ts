@@ -12,12 +12,13 @@ export const DEFAULT_REDIS_PORT = 6379;
 export const DEFAULT_REDIS_DB = 0;
 export const DEFAULT_MAIL_PORT = 587;
 export const DEFAULT_MAIL_FROM_NAME = "NestJS Template";
-export const SUPPORTED_DATABASE_TYPES = ["mysql"] as const;
+export const SUPPORTED_DATABASE_TYPES = ["mysql", "postgres"] as const;
 export type DatabaseType = (typeof SUPPORTED_DATABASE_TYPES)[number];
 export const DEFAULT_DB_TYPE: DatabaseType = "mysql";
 
 const DEFAULT_DB_PORTS: Record<DatabaseType, number> = {
   mysql: 3306,
+  postgres: 5432,
 };
 
 export const getDefaultDatabasePort = (type: DatabaseType): number =>
@@ -234,7 +235,7 @@ export const validationSchema = Joi.object({
   [ENV.DB_HOST]: Joi.string().required(),
   [ENV.DB_PORT]: Joi.number().port().optional(),
   [ENV.DB_USERNAME]: Joi.string().required(),
-  [ENV.DB_PASSWORD]: Joi.string().required(),
+  [ENV.DB_PASSWORD]: Joi.string().allow("").required(),
   [ENV.DB_DATABASE]: Joi.string().required(),
   [ENV.DB_SYNC]: Joi.boolean().truthy("true").falsy("false").default(false),
   [ENV.REDIS_HOST]: Joi.string().required(),
