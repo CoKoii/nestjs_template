@@ -34,10 +34,10 @@ export class AuthSession {
   lastUsedAt!: Date;
 
   @Column({ length: 45, nullable: true, comment: "最后访问IP" })
-  ip!: string | null;
+  ip!: string;
 
   @Column({ length: 512, nullable: true, comment: "设备标识" })
-  userAgent!: string | null;
+  userAgent!: string;
 
   @CreateDateColumn({ comment: "创建时间" })
   createdAt!: Date;

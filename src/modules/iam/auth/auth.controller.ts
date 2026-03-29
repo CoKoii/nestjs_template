@@ -21,10 +21,10 @@ import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
 
 const resolveHeaderValue = (value: string | string[] | undefined) =>
-  typeof value === "string" ? value : (value?.[0] ?? null);
+  typeof value === "string" ? value : (value?.[0] ?? "");
 
 const createAuthRequestContext = (request: Request): AuthRequestContext => ({
-  ip: request.ip || null,
+  ip: request.ip || "",
   userAgent: resolveHeaderValue(request.headers["user-agent"]),
 });
 

@@ -2,14 +2,14 @@ import { ConfigService } from "@nestjs/config";
 import type { TypeOrmModuleOptions } from "@nestjs/typeorm";
 import { join } from "node:path";
 import type { DataSourceOptions } from "typeorm";
-import type { MysqlConnectionOptions } from "typeorm/driver/mysql/MysqlConnectionOptions";
 import {
-  DEFAULT_NODE_ENV,
+  type DatabaseEnvironment,
   getAppEnvironment,
   getAppEnvironmentFromProcess,
   getDatabaseEnvironment,
   getDatabaseEnvironmentFromProcess,
 } from "../config/env";
+import { getDatabaseDriver } from "./database-driver.registry";
 
 const isTypeScriptRuntime = __filename.endsWith(".ts");
 const runtimeExtension = isTypeScriptRuntime ? "ts" : "js";
@@ -20,19 +20,14 @@ const entities = [join(runtimeRoot, "**", `*.entity.${runtimeExtension}`)];
 const migrations = [join(runtimeRoot, "migrations", `*.${runtimeExtension}`)];
 
 const createDatabaseOptions = (
-  databaseEnvironment: ReturnType<typeof getDatabaseEnvironment>,
+  databaseEnvironment: DatabaseEnvironment,
   nodeEnv: string,
-): MysqlConnectionOptions => ({
-  type: "mysql",
-  host: databaseEnvironment.host,
-  port: databaseEnvironment.port,
-  username: databaseEnvironment.username,
-  password: databaseEnvironment.password,
-  database: databaseEnvironment.database,
-  entities,
-  synchronize: databaseEnvironment.synchronize,
-  logging: nodeEnv === DEFAULT_NODE_ENV,
-});
+): DataSourceOptions =>
+  getDatabaseDriver(databaseEnvironment.type).createConnectionOptions({
+    databaseEnvironment,
+    entities,
+    nodeEnv,
+  });
 
 export const createTypeOrmOptions = (
   configService: ConfigService,

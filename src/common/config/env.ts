@@ -8,11 +8,30 @@ export const DEFAULT_NODE_ENV = "development";
 export const DEFAULT_PORT = 3000;
 export const DEFAULT_CACHE_TTL_MS = 60_000;
 export const DEFAULT_CACHE_NAMESPACE = "cache";
-export const DEFAULT_DB_PORT = 3306;
 export const DEFAULT_REDIS_PORT = 6379;
 export const DEFAULT_REDIS_DB = 0;
 export const DEFAULT_MAIL_PORT = 587;
 export const DEFAULT_MAIL_FROM_NAME = "NestJS Template";
+export const SUPPORTED_DATABASE_TYPES = ["mysql"] as const;
+export type DatabaseType = (typeof SUPPORTED_DATABASE_TYPES)[number];
+export const DEFAULT_DB_TYPE: DatabaseType = "mysql";
+
+const DEFAULT_DB_PORTS: Record<DatabaseType, number> = {
+  mysql: 3306,
+};
+
+export const getDefaultDatabasePort = (type: DatabaseType): number =>
+  DEFAULT_DB_PORTS[type];
+
+export type DatabaseEnvironment = {
+  type: DatabaseType;
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  database: string;
+  synchronize: boolean;
+};
 
 export const ENV = {
   NODE_ENV: "NODE_ENV",
@@ -20,6 +39,7 @@ export const ENV = {
   CORS_ORIGINS: "CORS_ORIGINS",
   CACHE_TTL_MS: "CACHE_TTL_MS",
   CACHE_NAMESPACE: "CACHE_NAMESPACE",
+  DB_TYPE: "DB_TYPE",
   DB_HOST: "DB_HOST",
   DB_PORT: "DB_PORT",
   DB_USERNAME: "DB_USERNAME",
@@ -101,6 +121,15 @@ const parseCommaSeparatedValue = (value: unknown): string[] =>
         .filter(Boolean)
     : [];
 
+const isDatabaseType = (value: unknown): value is DatabaseType =>
+  typeof value === "string" &&
+  SUPPORTED_DATABASE_TYPES.includes(value as DatabaseType);
+
+const parseDatabaseType = (
+  value: unknown,
+  fallback: DatabaseType = DEFAULT_DB_TYPE,
+): DatabaseType => (isDatabaseType(value) ? value : fallback);
+
 const createAppEnvironment = (get: EnvironmentGetter) => ({
   nodeEnv: parseString(get(ENV.NODE_ENV), DEFAULT_NODE_ENV),
   port: parseNumber(get(ENV.PORT), DEFAULT_PORT),
@@ -112,14 +141,21 @@ const createCacheEnvironment = (get: EnvironmentGetter) => ({
   namespace: parseString(get(ENV.CACHE_NAMESPACE), DEFAULT_CACHE_NAMESPACE),
 });
 
-const createDatabaseEnvironment = (get: EnvironmentGetter) => ({
-  host: parseString(get(ENV.DB_HOST)),
-  port: parseNumber(get(ENV.DB_PORT), DEFAULT_DB_PORT),
-  username: parseString(get(ENV.DB_USERNAME)),
-  password: parseString(get(ENV.DB_PASSWORD)),
-  database: parseString(get(ENV.DB_DATABASE)),
-  synchronize: parseBoolean(get(ENV.DB_SYNC)),
-});
+const createDatabaseEnvironment = (
+  get: EnvironmentGetter,
+): DatabaseEnvironment => {
+  const type = parseDatabaseType(get(ENV.DB_TYPE));
+
+  return {
+    type,
+    host: parseString(get(ENV.DB_HOST)),
+    port: parseNumber(get(ENV.DB_PORT), getDefaultDatabasePort(type)),
+    username: parseString(get(ENV.DB_USERNAME)),
+    password: parseString(get(ENV.DB_PASSWORD)),
+    database: parseString(get(ENV.DB_DATABASE)),
+    synchronize: parseBoolean(get(ENV.DB_SYNC)),
+  };
+};
 
 const createRedisEnvironment = (get: EnvironmentGetter) => ({
   host: parseString(get(ENV.REDIS_HOST)),
@@ -188,12 +224,15 @@ export const validationSchema = Joi.object({
     .min(0)
     .default(DEFAULT_CACHE_TTL_MS),
   [ENV.CACHE_NAMESPACE]: Joi.string().trim().default(DEFAULT_CACHE_NAMESPACE),
+  [ENV.DB_TYPE]: Joi.string()
+    .valid(...SUPPORTED_DATABASE_TYPES)
+    .default(DEFAULT_DB_TYPE),
   [ENV.LOG_ON]: Joi.boolean().truthy("true").falsy("false").default(false),
   [ENV.LOG_LEVEL]: Joi.string()
     .valid("error", "warn", "info", "http", "verbose", "debug", "silly")
     .default("info"),
   [ENV.DB_HOST]: Joi.string().required(),
-  [ENV.DB_PORT]: Joi.number().port().default(DEFAULT_DB_PORT),
+  [ENV.DB_PORT]: Joi.number().port().optional(),
   [ENV.DB_USERNAME]: Joi.string().required(),
   [ENV.DB_PASSWORD]: Joi.string().required(),
   [ENV.DB_DATABASE]: Joi.string().required(),

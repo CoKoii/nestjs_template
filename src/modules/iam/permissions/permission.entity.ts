@@ -16,7 +16,7 @@ export class Permission {
   @Column({ comment: "权限码", length: 50, unique: true })
   code!: string;
   @Column({ comment: "权限描述", length: 255, nullable: true })
-  description!: string | null;
+  description!: string;
   @Column({ comment: "状态", default: true })
   status!: boolean;
   @CreateDateColumn({ comment: "创建时间" })

@@ -18,7 +18,7 @@ export class Role {
   @Column({ comment: "角色名称", length: 50, unique: true })
   roleName!: string;
   @Column({ comment: "角色描述", length: 255, nullable: true })
-  description!: string | null;
+  description!: string;
   @Column({ comment: "状态", default: true })
   status!: boolean;
   @CreateDateColumn({ comment: "创建时间" })

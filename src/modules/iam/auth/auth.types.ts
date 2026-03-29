@@ -4,6 +4,6 @@ export interface AuthTokens {
 }
 
 export interface AuthRequestContext {
-  ip: string | null;
-  userAgent: string | null;
+  ip: string;
+  userAgent: string;
 }
