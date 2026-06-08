@@ -16,6 +16,8 @@ import {
   resolveExceptionMessage,
 } from "./exception.util";
 
+const isServerError = (statusCode: number) => statusCode >= 500;
+
 @Catch()
 export class AllExceptionFilter implements ExceptionFilter {
   constructor(
@@ -34,12 +36,23 @@ export class AllExceptionFilter implements ExceptionFilter {
         : HttpStatus.INTERNAL_SERVER_ERROR;
     const message = resolveExceptionMessage(exception);
     const error = exception instanceof Error ? exception : undefined;
-    const path = request.originalUrl ?? request.url;
-    this.logger.error(
-      `[${path}]`,
-      buildExceptionLog(request, httpStatus, message, error),
-      AllExceptionFilter.name,
-    );
+    const log = {
+      message: `[${request.originalUrl ?? request.url}]`,
+      ...buildExceptionLog(
+        AllExceptionFilter.name,
+        request,
+        httpStatus,
+        message,
+        error,
+      ),
+    };
+
+    if (isServerError(httpStatus)) {
+      this.logger.error(log);
+    } else {
+      this.logger.warn(log);
+    }
+
     httpAdapter.reply(
       response,
       buildExceptionResponse(httpStatus, message),

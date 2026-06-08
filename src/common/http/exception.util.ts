@@ -8,19 +8,48 @@ const DATABASE_ERROR_MESSAGE = "数据库操作失败";
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
-const SENSITIVE_KEYS = new Set([
-  "password",
-  "confirmPassword",
+const SENSITIVE_KEYWORDS = [
+  "apikey",
   "authorization",
+  "confirmpassword",
+  "mailpass",
+  "pass",
+  "password",
+  "secret",
+  "accesstoken",
+  "refreshtoken",
   "token",
-  "accessToken",
-  "refreshToken",
-]);
+] as const;
+
+export type ExceptionLog = {
+  context: string;
+  method: string;
+  path: string;
+  ip: string | undefined;
+  params: unknown;
+  query: unknown;
+  body: unknown;
+  user: unknown;
+  token: string | null;
+  statusCode: number;
+  exceptionMessage: string;
+  errorMessage?: string;
+  exception: string;
+  errorStack?: string;
+};
 
 const maskString = (value: string) =>
   value.length <= 8
     ? "[REDACTED]"
     : `${value.slice(0, 4)}...${value.slice(-4)}`;
+
+const normalizeSensitiveKey = (key: string) =>
+  key.replaceAll(/[-_]/g, "").toLowerCase();
+
+const isSensitiveKey = (key: string) =>
+  SENSITIVE_KEYWORDS.includes(
+    normalizeSensitiveKey(key) as (typeof SENSITIVE_KEYWORDS)[number],
+  );
 
 const toMessage = (raw: unknown) =>
   raw == null
@@ -63,7 +92,7 @@ const sanitizeValue = (
   return Object.fromEntries(
     Object.entries(value).map(([key, item]) => [
       key,
-      SENSITIVE_KEYS.has(key) ? "[REDACTED]" : sanitizeValue(item, seen),
+      isSensitiveKey(key) ? "[REDACTED]" : sanitizeValue(item, seen),
     ]),
   );
 };
@@ -75,11 +104,13 @@ const sanitizeToken = (authorization: string | string[] | null | undefined) => {
 };
 
 export const buildExceptionLog = (
+  context: string,
   request: Request & { user?: unknown },
   statusCode: number,
   message: string,
   error?: Error,
-) => ({
+): ExceptionLog => ({
+  context,
   method: request.method,
   path: request.originalUrl ?? request.url,
   ip: request.ip,
@@ -89,10 +120,10 @@ export const buildExceptionLog = (
   user: sanitizeValue(request.user ?? null),
   token: sanitizeToken(request.headers["authorization"] ?? null),
   statusCode,
-  message,
+  exceptionMessage: message,
   errorMessage: error?.message,
   exception: error?.name ?? "UnknownException",
-  stack: error?.stack,
+  ...(statusCode >= 500 ? { errorStack: error?.stack } : {}),
 });
 
 export const buildExceptionResponse = (

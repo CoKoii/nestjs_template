@@ -11,7 +11,14 @@ const fileFormat = winston.format.combine(
   winston.format.prettyPrint(),
 );
 
-const createDailyTransport = (filename: string, level: string) =>
+const onlyLevel = (level: string) =>
+  winston.format((info) => (info.level === level ? info : false))();
+
+const createDailyTransport = (
+  filename: string,
+  level: string,
+  format = fileFormat,
+) =>
   new DailyRotateFile({
     dirname: "logs",
     filename,
@@ -20,8 +27,15 @@ const createDailyTransport = (filename: string, level: string) =>
     maxSize: "20m",
     maxFiles: "7d",
     level,
-    format: fileFormat,
+    format,
   });
+
+const createLevelFileTransport = (filename: string, level: string) =>
+  createDailyTransport(
+    filename,
+    level,
+    winston.format.combine(onlyLevel(level), fileFormat),
+  );
 
 export const createWinstonLoggerOptions = (
   configService: ConfigService,
@@ -43,7 +57,8 @@ export const createWinstonLoggerOptions = (
       ...(logEnabled
         ? [
             createDailyTransport("application-%DATE%.log", level),
-            createDailyTransport("warning-%DATE%.log", "warn"),
+            createLevelFileTransport("error-%DATE%.log", "error"),
+            createLevelFileTransport("warning-%DATE%.log", "warn"),
           ]
         : []),
     ],
