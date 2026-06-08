@@ -10,7 +10,7 @@ import { JwtService } from "@nestjs/jwt";
 import { InjectRepository } from "@nestjs/typeorm";
 import * as argon2 from "argon2";
 import { randomUUID } from "node:crypto";
-import { Repository } from "typeorm";
+import { LessThanOrEqual, Repository } from "typeorm";
 import {
   ACCESS_TOKEN_TYPE,
   REFRESH_TOKEN_TYPE,
@@ -32,6 +32,8 @@ interface IssuedAuthTokens extends AuthTokens {
   refreshTokenHash: string;
   refreshTokenExpiresAt: Date;
 }
+
+const SESSION_TOUCH_INTERVAL_MS = 5 * 60 * 1000;
 
 @Injectable()
 export class AuthService {
@@ -242,6 +244,22 @@ export class AuthService {
   // --------------------------------------------------------------------------------------------------
 
   // --------------------------------------------------------------------------------------------------
+  // 构建会话轮换数据
+  private buildSessionRotationPayload(
+    tokens: IssuedAuthTokens,
+    context: AuthRequestContext,
+  ): Partial<AuthSession> {
+    return {
+      refreshTokenHash: tokens.refreshTokenHash,
+      expiresAt: tokens.refreshTokenExpiresAt,
+      lastUsedAt: new Date(),
+      ip: context.ip,
+      userAgent: context.userAgent,
+    };
+  }
+  // --------------------------------------------------------------------------------------------------
+
+  // --------------------------------------------------------------------------------------------------
   // 查询登录用户
   private findUserForLogin(username: string) {
     return this.createUserAuthQueryBuilder()
@@ -287,6 +305,54 @@ export class AuthService {
     const tokens = await this.issueTokens(user.id, sessionId);
     await this.saveSession(user.id, tokens, context);
     return this.toAuthTokens(tokens);
+  }
+  // --------------------------------------------------------------------------------------------------
+
+  // --------------------------------------------------------------------------------------------------
+  // 轮换并保存刷新令牌
+  private async rotateSessionTokens(
+    session: AuthSession,
+    context: AuthRequestContext,
+  ): Promise<AuthTokens> {
+    const tokens = await this.issueTokens(session.userId, session.id);
+    const result = await this.authSessions.update(
+      {
+        id: session.id,
+        userId: session.userId,
+        refreshTokenHash: session.refreshTokenHash,
+      },
+      this.buildSessionRotationPayload(tokens, context),
+    );
+
+    if (result.affected !== 1) {
+      this.throwInvalidRefreshToken();
+    }
+
+    return this.toAuthTokens(tokens);
+  }
+  // --------------------------------------------------------------------------------------------------
+
+  // --------------------------------------------------------------------------------------------------
+  // 按间隔刷新会话最近使用时间
+  private async touchSessionIfStale(session: AuthSession): Promise<void> {
+    const now = new Date();
+    if (
+      now.getTime() - session.lastUsedAt.getTime() <
+      SESSION_TOUCH_INTERVAL_MS
+    ) {
+      return;
+    }
+
+    await this.authSessions.update(
+      {
+        id: session.id,
+        userId: session.userId,
+        lastUsedAt: LessThanOrEqual(
+          new Date(now.getTime() - SESSION_TOUCH_INTERVAL_MS),
+        ),
+      },
+      { lastUsedAt: now },
+    );
   }
   // --------------------------------------------------------------------------------------------------
 
@@ -344,10 +410,7 @@ export class AuthService {
 
     this.ensureUserIsActive(session.user);
 
-    await this.authSessions.update(
-      { id: session.id, userId: session.userId },
-      { lastUsedAt: new Date() },
-    );
+    await this.touchSessionIfStale(session);
 
     return this.buildAuthUser(session.user, session.id);
   }
@@ -418,7 +481,7 @@ export class AuthService {
       user.sessionId,
       user.refreshToken,
     );
-    return this.issueSessionTokens(session.user, context, session.id);
+    return this.rotateSessionTokens(session, context);
   }
   // --------------------------------------------------------------------------------------------------
 

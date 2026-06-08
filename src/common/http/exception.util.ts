@@ -42,7 +42,7 @@ export const resolveExceptionMessage = (err: unknown): string => {
     return toMessage(raw);
   }
 
-  return err instanceof Error ? err.message : DEFAULT_MESSAGE;
+  return DEFAULT_MESSAGE;
 };
 
 const sanitizeValue = (
@@ -90,6 +90,7 @@ export const buildExceptionLog = (
   token: sanitizeToken(request.headers["authorization"] ?? null),
   statusCode,
   message,
+  errorMessage: error?.message,
   exception: error?.name ?? "UnknownException",
   stack: error?.stack,
 });

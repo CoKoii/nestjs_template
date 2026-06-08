@@ -5,7 +5,7 @@ import { ScheduleModule } from "@nestjs/schedule";
 import { JwtAuthGuard } from "./common/auth/jwt-auth.guard";
 import { RolesGuard } from "./common/auth/roles.guard";
 import { AppCacheModule } from "./common/cache/cache.module";
-import { resolveEnvFilePaths, validationSchema } from "./common/config/env";
+import { resolveEnvFilePaths, validateEnvironment } from "./common/config/env";
 import { DatabaseModule } from "./common/database/database.module";
 import { AllExceptionFilter } from "./common/http/exception.filter";
 import { ResponseInterceptor } from "./common/http/response.interceptor";
@@ -19,7 +19,7 @@ import { IamModule } from "./modules/iam/iam.module";
       isGlobal: true,
       cache: true,
       envFilePath: resolveEnvFilePaths(),
-      validationSchema,
+      validate: validateEnvironment,
     }),
     ScheduleModule.forRoot(),
     LoggingModule,

@@ -1,5 +1,6 @@
 import type { ConfigService } from "@nestjs/config";
 import * as dotenv from "dotenv";
+import type { ValidationResult } from "joi";
 import * as Joi from "joi";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -196,7 +197,7 @@ const withConfigService =
   (key: string): unknown =>
     configService.get(key);
 
-const withProcessEnvironment = (key: string): unknown => process.env[key];
+let validatedProcessEnvironment: Record<string, unknown> | null = null;
 
 export const resolveEnvFilePaths = (
   nodeEnv = process.env.NODE_ENV ?? DEFAULT_NODE_ENV,
@@ -237,7 +238,16 @@ export const validationSchema = Joi.object({
   [ENV.DB_USERNAME]: Joi.string().required(),
   [ENV.DB_PASSWORD]: Joi.string().allow("").required(),
   [ENV.DB_DATABASE]: Joi.string().required(),
-  [ENV.DB_SYNC]: Joi.boolean().truthy("true").falsy("false").default(false),
+  [ENV.DB_SYNC]: Joi.when(ENV.NODE_ENV, {
+    is: "production",
+    then: Joi.boolean()
+      .truthy("true")
+      .falsy("false")
+      .valid(false)
+      .default(false)
+      .messages({ "any.only": "生产环境禁止开启 DB_SYNC=true" }),
+    otherwise: Joi.boolean().truthy("true").falsy("false").default(false),
+  }),
   [ENV.REDIS_HOST]: Joi.string().required(),
   [ENV.REDIS_PORT]: Joi.number().port().default(DEFAULT_REDIS_PORT),
   [ENV.REDIS_USERNAME]: Joi.string().allow("").optional(),
@@ -275,6 +285,27 @@ export const validationSchema = Joi.object({
   [ENV.JWT_REFRESH_SECRET]: Joi.string().required(),
   [ENV.JWT_REFRESH_EXPIRES_IN]: Joi.string().trim().required(),
 });
+
+export const validateEnvironment = (
+  environment: Record<string, unknown>,
+): Record<string, unknown> => {
+  const result: ValidationResult<Record<string, unknown>> =
+    validationSchema.validate(environment, {
+      abortEarly: false,
+      allowUnknown: true,
+    });
+
+  if (result.error) {
+    throw result.error;
+  }
+
+  return result.value;
+};
+
+const withProcessEnvironment = (key: string): unknown => {
+  validatedProcessEnvironment ??= validateEnvironment(readProcessEnvironment());
+  return validatedProcessEnvironment[key];
+};
 
 export const getAppEnvironment = (configService: Pick<ConfigService, "get">) =>
   createAppEnvironment(withConfigService(configService));

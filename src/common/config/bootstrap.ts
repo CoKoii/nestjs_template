@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   ValidationPipe,
-  VersioningType,
   type INestApplication,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
@@ -10,7 +9,6 @@ import { WINSTON_MODULE_NEST_PROVIDER } from "nest-winston";
 import { getAppEnvironment } from "./env";
 
 const API_GLOBAL_PREFIX = "api";
-const API_VERSION_PREFIX = "v";
 const DEFAULT_VALIDATION_MESSAGE = "参数校验失败";
 
 const resolveFirstValidationMessage = (error: ValidationError): string => {
@@ -45,10 +43,6 @@ export const setupApplication = (app: INestApplication) => {
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
   app.enableShutdownHooks();
   app.setGlobalPrefix(API_GLOBAL_PREFIX);
-  app.enableVersioning({
-    type: VersioningType.URI,
-    prefix: API_VERSION_PREFIX,
-  });
   app.enableCors({
     origin:
       appEnvironment.nodeEnv === "production"
