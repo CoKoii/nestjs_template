@@ -16,7 +16,7 @@ export class AuthSessionCleanupService {
 
   // --------------------------------------------------------------------------------------------------
   // 清理过期登录会话
-  @Cron(CronExpression.EVERY_10_MINUTES, {
+  @Cron(CronExpression.EVERY_HOUR, {
     name: "auth-session-cleanup",
     waitForCompletion: true,
   })
