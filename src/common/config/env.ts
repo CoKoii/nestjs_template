@@ -5,25 +5,15 @@ import * as Joi from "joi";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-export const DEFAULT_NODE_ENV = "development";
-export const DEFAULT_PORT = 3000;
-export const DEFAULT_CACHE_TTL_MS = 60_000;
-export const DEFAULT_CACHE_NAMESPACE = "cache";
-export const DEFAULT_REDIS_PORT = 6379;
-export const DEFAULT_REDIS_DB = 0;
-export const DEFAULT_MAIL_PORT = 587;
-export const DEFAULT_MAIL_FROM_NAME = "NestJS Template";
+export const DEVELOPMENT_NODE_ENV = "development";
+export const SUPPORTED_NODE_ENVS = [
+  DEVELOPMENT_NODE_ENV,
+  "production",
+  "test",
+] as const;
+export type NodeEnv = (typeof SUPPORTED_NODE_ENVS)[number];
 export const SUPPORTED_DATABASE_TYPES = ["mysql", "postgres"] as const;
 export type DatabaseType = (typeof SUPPORTED_DATABASE_TYPES)[number];
-export const DEFAULT_DB_TYPE: DatabaseType = "mysql";
-
-const DEFAULT_DB_PORTS: Record<DatabaseType, number> = {
-  mysql: 3306,
-  postgres: 5432,
-};
-
-export const getDefaultDatabasePort = (type: DatabaseType): number =>
-  DEFAULT_DB_PORTS[type];
 
 export type DatabaseEnvironment = {
   type: DatabaseType;
@@ -39,8 +29,6 @@ export const ENV = {
   NODE_ENV: "NODE_ENV",
   PORT: "PORT",
   CORS_ORIGINS: "CORS_ORIGINS",
-  CACHE_TTL_MS: "CACHE_TTL_MS",
-  CACHE_NAMESPACE: "CACHE_NAMESPACE",
   DB_TYPE: "DB_TYPE",
   DB_HOST: "DB_HOST",
   DB_PORT: "DB_PORT",
@@ -83,113 +71,168 @@ const readProcessEnvironment = (): Record<string, string> =>
     ),
   );
 
-const resolveEnvFiles = (
-  nodeEnv = process.env.NODE_ENV ?? DEFAULT_NODE_ENV,
-) => [
-  resolve(process.cwd(), ".env"),
-  resolve(process.cwd(), `.env.${nodeEnv}`),
-];
+const getRequiredString = (value: unknown, key: string): string => {
+  if (typeof value === "string") {
+    return value;
+  }
 
-const parseBoolean = (value: unknown, fallback = false): boolean => {
+  throw new Error(`${key} is required`);
+};
+
+const getRequiredBoolean = (value: unknown, key: string): boolean => {
   if (typeof value === "boolean") {
     return value;
   }
 
   if (typeof value === "string") {
-    return value.toLowerCase() === "true";
+    if (value.toLowerCase() === "true") {
+      return true;
+    }
+
+    if (value.toLowerCase() === "false") {
+      return false;
+    }
   }
 
-  return fallback;
+  throw new Error(`${key} must be a boolean`);
 };
 
-const parseNumber = (value: unknown, fallback: number): number => {
+const getRequiredNumber = (value: unknown, key: string): number => {
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
+  if (Number.isFinite(parsed)) {
+    return parsed;
+  }
+
+  throw new Error(`${key} must be a number`);
 };
 
-const parseString = (value: unknown, fallback = ""): string =>
-  typeof value === "string" ? value : fallback;
-
-const parseOptionalString = (value: unknown): string | undefined => {
-  const parsed = parseString(value);
+const getExplicitOptionalString = (
+  value: unknown,
+  key: string,
+): string | undefined => {
+  const parsed = getRequiredString(value, key);
   return parsed ? parsed : undefined;
 };
 
-const parseCommaSeparatedValue = (value: unknown): string[] =>
-  typeof value === "string"
-    ? value
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean)
-    : [];
+const parseCommaSeparatedValue = (value: unknown, key: string): string[] =>
+  getRequiredString(value, key)
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const isNodeEnv = (value: unknown): value is NodeEnv =>
+  typeof value === "string" && SUPPORTED_NODE_ENVS.includes(value as NodeEnv);
+
+const getRequiredNodeEnv = (value: unknown, key: string): NodeEnv => {
+  if (isNodeEnv(value)) {
+    return value;
+  }
+
+  throw new Error(`${key} must be one of ${SUPPORTED_NODE_ENVS.join(", ")}`);
+};
+
+const resolveRuntimeNodeEnv = (nodeEnv = process.env.NODE_ENV): NodeEnv =>
+  getRequiredNodeEnv(nodeEnv, ENV.NODE_ENV);
+
+const resolveEnvFiles = (nodeEnv = resolveRuntimeNodeEnv()) => [
+  resolve(process.cwd(), ".env"),
+  resolve(process.cwd(), `.env.${nodeEnv}`),
+];
 
 const isDatabaseType = (value: unknown): value is DatabaseType =>
   typeof value === "string" &&
   SUPPORTED_DATABASE_TYPES.includes(value as DatabaseType);
 
-const parseDatabaseType = (
-  value: unknown,
-  fallback: DatabaseType = DEFAULT_DB_TYPE,
-): DatabaseType => (isDatabaseType(value) ? value : fallback);
+const getRequiredDatabaseType = (value: unknown, key: string): DatabaseType => {
+  if (isDatabaseType(value)) {
+    return value;
+  }
+
+  throw new Error(
+    `${key} must be one of ${SUPPORTED_DATABASE_TYPES.join(", ")}`,
+  );
+};
 
 const createAppEnvironment = (get: EnvironmentGetter) => ({
-  nodeEnv: parseString(get(ENV.NODE_ENV), DEFAULT_NODE_ENV),
-  port: parseNumber(get(ENV.PORT), DEFAULT_PORT),
-  corsOrigins: parseCommaSeparatedValue(get(ENV.CORS_ORIGINS)),
-});
-
-const createCacheEnvironment = (get: EnvironmentGetter) => ({
-  ttl: parseNumber(get(ENV.CACHE_TTL_MS), DEFAULT_CACHE_TTL_MS),
-  namespace: parseString(get(ENV.CACHE_NAMESPACE), DEFAULT_CACHE_NAMESPACE),
+  nodeEnv: getRequiredNodeEnv(get(ENV.NODE_ENV), ENV.NODE_ENV),
+  port: getRequiredNumber(get(ENV.PORT), ENV.PORT),
+  corsOrigins: parseCommaSeparatedValue(
+    get(ENV.CORS_ORIGINS),
+    ENV.CORS_ORIGINS,
+  ),
 });
 
 const createDatabaseEnvironment = (
   get: EnvironmentGetter,
 ): DatabaseEnvironment => {
-  const type = parseDatabaseType(get(ENV.DB_TYPE));
+  const type = getRequiredDatabaseType(get(ENV.DB_TYPE), ENV.DB_TYPE);
 
   return {
     type,
-    host: parseString(get(ENV.DB_HOST)),
-    port: parseNumber(get(ENV.DB_PORT), getDefaultDatabasePort(type)),
-    username: parseString(get(ENV.DB_USERNAME)),
-    password: parseString(get(ENV.DB_PASSWORD)),
-    database: parseString(get(ENV.DB_DATABASE)),
-    synchronize: parseBoolean(get(ENV.DB_SYNC)),
+    host: getRequiredString(get(ENV.DB_HOST), ENV.DB_HOST),
+    port: getRequiredNumber(get(ENV.DB_PORT), ENV.DB_PORT),
+    username: getRequiredString(get(ENV.DB_USERNAME), ENV.DB_USERNAME),
+    password: getRequiredString(get(ENV.DB_PASSWORD), ENV.DB_PASSWORD),
+    database: getRequiredString(get(ENV.DB_DATABASE), ENV.DB_DATABASE),
+    synchronize: getRequiredBoolean(get(ENV.DB_SYNC), ENV.DB_SYNC),
   };
 };
 
 const createRedisEnvironment = (get: EnvironmentGetter) => ({
-  host: parseString(get(ENV.REDIS_HOST)),
-  port: parseNumber(get(ENV.REDIS_PORT), DEFAULT_REDIS_PORT),
-  username: parseOptionalString(get(ENV.REDIS_USERNAME)),
-  password: parseOptionalString(get(ENV.REDIS_PASSWORD)),
-  db: parseNumber(get(ENV.REDIS_DB), DEFAULT_REDIS_DB),
-  keyPrefix: parseOptionalString(get(ENV.REDIS_KEY_PREFIX)),
+  host: getRequiredString(get(ENV.REDIS_HOST), ENV.REDIS_HOST),
+  port: getRequiredNumber(get(ENV.REDIS_PORT), ENV.REDIS_PORT),
+  username: getExplicitOptionalString(
+    get(ENV.REDIS_USERNAME),
+    ENV.REDIS_USERNAME,
+  ),
+  password: getExplicitOptionalString(
+    get(ENV.REDIS_PASSWORD),
+    ENV.REDIS_PASSWORD,
+  ),
+  db: getRequiredNumber(get(ENV.REDIS_DB), ENV.REDIS_DB),
+  keyPrefix: getExplicitOptionalString(
+    get(ENV.REDIS_KEY_PREFIX),
+    ENV.REDIS_KEY_PREFIX,
+  ),
 });
 
 const createMailEnvironment = (get: EnvironmentGetter) => ({
-  enabled: parseBoolean(get(ENV.MAIL_ENABLED)),
-  host: parseOptionalString(get(ENV.MAIL_HOST)),
-  port: parseNumber(get(ENV.MAIL_PORT), DEFAULT_MAIL_PORT),
-  secure: parseBoolean(get(ENV.MAIL_SECURE)),
-  ignoreTls: parseBoolean(get(ENV.MAIL_IGNORE_TLS)),
-  user: parseOptionalString(get(ENV.MAIL_USER)),
-  pass: parseOptionalString(get(ENV.MAIL_PASS)),
-  fromName: parseString(get(ENV.MAIL_FROM_NAME), DEFAULT_MAIL_FROM_NAME),
-  fromAddress: parseOptionalString(get(ENV.MAIL_FROM_ADDRESS)),
+  enabled: getRequiredBoolean(get(ENV.MAIL_ENABLED), ENV.MAIL_ENABLED),
+  host: getExplicitOptionalString(get(ENV.MAIL_HOST), ENV.MAIL_HOST),
+  port: getRequiredNumber(get(ENV.MAIL_PORT), ENV.MAIL_PORT),
+  secure: getRequiredBoolean(get(ENV.MAIL_SECURE), ENV.MAIL_SECURE),
+  ignoreTls: getRequiredBoolean(get(ENV.MAIL_IGNORE_TLS), ENV.MAIL_IGNORE_TLS),
+  user: getExplicitOptionalString(get(ENV.MAIL_USER), ENV.MAIL_USER),
+  pass: getExplicitOptionalString(get(ENV.MAIL_PASS), ENV.MAIL_PASS),
+  fromName: getRequiredString(get(ENV.MAIL_FROM_NAME), ENV.MAIL_FROM_NAME),
+  fromAddress: getExplicitOptionalString(
+    get(ENV.MAIL_FROM_ADDRESS),
+    ENV.MAIL_FROM_ADDRESS,
+  ),
 });
 
 const createAuthEnvironment = (get: EnvironmentGetter) => ({
-  accessTokenSecret: parseString(get(ENV.JWT_ACCESS_SECRET)),
-  accessTokenExpiresIn: parseString(get(ENV.JWT_ACCESS_EXPIRES_IN)),
-  refreshTokenSecret: parseString(get(ENV.JWT_REFRESH_SECRET)),
-  refreshTokenExpiresIn: parseString(get(ENV.JWT_REFRESH_EXPIRES_IN)),
+  accessTokenSecret: getRequiredString(
+    get(ENV.JWT_ACCESS_SECRET),
+    ENV.JWT_ACCESS_SECRET,
+  ),
+  accessTokenExpiresIn: getRequiredString(
+    get(ENV.JWT_ACCESS_EXPIRES_IN),
+    ENV.JWT_ACCESS_EXPIRES_IN,
+  ),
+  refreshTokenSecret: getRequiredString(
+    get(ENV.JWT_REFRESH_SECRET),
+    ENV.JWT_REFRESH_SECRET,
+  ),
+  refreshTokenExpiresIn: getRequiredString(
+    get(ENV.JWT_REFRESH_EXPIRES_IN),
+    ENV.JWT_REFRESH_EXPIRES_IN,
+  ),
 });
 
 const createLoggingEnvironment = (get: EnvironmentGetter) => ({
-  enabled: parseBoolean(get(ENV.LOG_ON)),
-  level: parseString(get(ENV.LOG_LEVEL), "info"),
+  enabled: getRequiredBoolean(get(ENV.LOG_ON), ENV.LOG_ON),
+  level: getRequiredString(get(ENV.LOG_LEVEL), ENV.LOG_LEVEL),
 });
 
 const withConfigService =
@@ -199,13 +242,10 @@ const withConfigService =
 
 let validatedProcessEnvironment: Record<string, unknown> | null = null;
 
-export const resolveEnvFilePaths = (
-  nodeEnv = process.env.NODE_ENV ?? DEFAULT_NODE_ENV,
-) => [...resolveEnvFiles(nodeEnv)].reverse();
+export const resolveEnvFilePaths = (nodeEnv = resolveRuntimeNodeEnv()) =>
+  [...resolveEnvFiles(nodeEnv)].reverse();
 
-export const loadEnvironmentFiles = (
-  nodeEnv = process.env.NODE_ENV ?? DEFAULT_NODE_ENV,
-) => {
+export const loadEnvironmentFiles = (nodeEnv = resolveRuntimeNodeEnv()) => {
   const [baseEnvPath, environmentEnvPath] = resolveEnvFiles(nodeEnv);
 
   Object.assign(process.env, {
@@ -217,24 +257,19 @@ export const loadEnvironmentFiles = (
 
 export const validationSchema = Joi.object({
   [ENV.NODE_ENV]: Joi.string()
-    .valid("development", "production", "test")
-    .default(DEFAULT_NODE_ENV),
-  [ENV.PORT]: Joi.number().port().default(DEFAULT_PORT),
-  [ENV.CORS_ORIGINS]: Joi.string().allow("").optional(),
-  [ENV.CACHE_TTL_MS]: Joi.number()
-    .integer()
-    .min(0)
-    .default(DEFAULT_CACHE_TTL_MS),
-  [ENV.CACHE_NAMESPACE]: Joi.string().trim().default(DEFAULT_CACHE_NAMESPACE),
+    .valid(...SUPPORTED_NODE_ENVS)
+    .required(),
+  [ENV.PORT]: Joi.number().port().required(),
+  [ENV.CORS_ORIGINS]: Joi.string().allow("").required(),
   [ENV.DB_TYPE]: Joi.string()
     .valid(...SUPPORTED_DATABASE_TYPES)
-    .default(DEFAULT_DB_TYPE),
-  [ENV.LOG_ON]: Joi.boolean().truthy("true").falsy("false").default(false),
+    .required(),
+  [ENV.LOG_ON]: Joi.boolean().truthy("true").falsy("false").required(),
   [ENV.LOG_LEVEL]: Joi.string()
     .valid("error", "warn", "info", "http", "verbose", "debug", "silly")
-    .default("info"),
+    .required(),
   [ENV.DB_HOST]: Joi.string().required(),
-  [ENV.DB_PORT]: Joi.number().port().optional(),
+  [ENV.DB_PORT]: Joi.number().port().required(),
   [ENV.DB_USERNAME]: Joi.string().required(),
   [ENV.DB_PASSWORD]: Joi.string().allow("").required(),
   [ENV.DB_DATABASE]: Joi.string().required(),
@@ -244,41 +279,35 @@ export const validationSchema = Joi.object({
       .truthy("true")
       .falsy("false")
       .valid(false)
-      .default(false)
+      .required()
       .messages({ "any.only": "生产环境禁止开启 DB_SYNC=true" }),
-    otherwise: Joi.boolean().truthy("true").falsy("false").default(false),
+    otherwise: Joi.boolean().truthy("true").falsy("false").required(),
   }),
   [ENV.REDIS_HOST]: Joi.string().required(),
-  [ENV.REDIS_PORT]: Joi.number().port().default(DEFAULT_REDIS_PORT),
-  [ENV.REDIS_USERNAME]: Joi.string().allow("").optional(),
-  [ENV.REDIS_PASSWORD]: Joi.string().allow("").optional(),
-  [ENV.REDIS_DB]: Joi.number().integer().min(0).default(DEFAULT_REDIS_DB),
-  [ENV.REDIS_KEY_PREFIX]: Joi.string().allow("").optional(),
-  [ENV.MAIL_ENABLED]: Joi.boolean()
-    .truthy("true")
-    .falsy("false")
-    .default(false),
+  [ENV.REDIS_PORT]: Joi.number().port().required(),
+  [ENV.REDIS_USERNAME]: Joi.string().allow("").required(),
+  [ENV.REDIS_PASSWORD]: Joi.string().allow("").required(),
+  [ENV.REDIS_DB]: Joi.number().integer().min(0).required(),
+  [ENV.REDIS_KEY_PREFIX]: Joi.string().allow("").required(),
+  [ENV.MAIL_ENABLED]: Joi.boolean().truthy("true").falsy("false").required(),
   [ENV.MAIL_HOST]: Joi.when(ENV.MAIL_ENABLED, {
     is: true,
     then: Joi.string().trim().required(),
-    otherwise: Joi.string().allow("").optional(),
+    otherwise: Joi.string().allow("").required(),
   }),
-  [ENV.MAIL_PORT]: Joi.number().port().default(DEFAULT_MAIL_PORT),
-  [ENV.MAIL_SECURE]: Joi.boolean().truthy("true").falsy("false").default(false),
-  [ENV.MAIL_IGNORE_TLS]: Joi.boolean()
-    .truthy("true")
-    .falsy("false")
-    .default(false),
-  [ENV.MAIL_USER]: Joi.string().allow("").optional(),
-  [ENV.MAIL_PASS]: Joi.string().allow("").optional(),
-  [ENV.MAIL_FROM_NAME]: Joi.string().trim().default(DEFAULT_MAIL_FROM_NAME),
+  [ENV.MAIL_PORT]: Joi.number().port().required(),
+  [ENV.MAIL_SECURE]: Joi.boolean().truthy("true").falsy("false").required(),
+  [ENV.MAIL_IGNORE_TLS]: Joi.boolean().truthy("true").falsy("false").required(),
+  [ENV.MAIL_USER]: Joi.string().allow("").required(),
+  [ENV.MAIL_PASS]: Joi.string().allow("").required(),
+  [ENV.MAIL_FROM_NAME]: Joi.string().trim().required(),
   [ENV.MAIL_FROM_ADDRESS]: Joi.when(ENV.MAIL_ENABLED, {
     is: true,
     then: Joi.string()
       .trim()
       .email({ tlds: { allow: false } })
       .required(),
-    otherwise: Joi.string().allow("").optional(),
+    otherwise: Joi.string().allow("").required(),
   }),
   [ENV.JWT_ACCESS_SECRET]: Joi.string().required(),
   [ENV.JWT_ACCESS_EXPIRES_IN]: Joi.string().trim().required(),
@@ -312,10 +341,6 @@ export const getAppEnvironment = (configService: Pick<ConfigService, "get">) =>
 
 export const getAppEnvironmentFromProcess = () =>
   createAppEnvironment(withProcessEnvironment);
-
-export const getCacheEnvironment = (
-  configService: Pick<ConfigService, "get">,
-) => createCacheEnvironment(withConfigService(configService));
 
 export const getDatabaseEnvironment = (
   configService: Pick<ConfigService, "get">,

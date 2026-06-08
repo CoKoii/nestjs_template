@@ -1,5 +1,5 @@
 import type { PostgresConnectionOptions } from "typeorm/driver/postgres/PostgresConnectionOptions";
-import { DEFAULT_NODE_ENV } from "../../../config/env";
+import { DEVELOPMENT_NODE_ENV } from "../../../config/env";
 import type { DatabaseConnectionContext } from "../../database.types";
 
 export const createPostgresConnectionOptions = ({
@@ -15,5 +15,5 @@ export const createPostgresConnectionOptions = ({
   database: databaseEnvironment.database,
   entities,
   synchronize: databaseEnvironment.synchronize,
-  logging: nodeEnv === DEFAULT_NODE_ENV,
+  logging: nodeEnv === DEVELOPMENT_NODE_ENV,
 });

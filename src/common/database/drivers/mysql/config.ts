@@ -1,5 +1,5 @@
 import type { MysqlConnectionOptions } from "typeorm/driver/mysql/MysqlConnectionOptions";
-import { DEFAULT_NODE_ENV } from "../../../config/env";
+import { DEVELOPMENT_NODE_ENV } from "../../../config/env";
 import type { DatabaseConnectionContext } from "../../database.types";
 
 export const createMysqlConnectionOptions = ({
@@ -15,5 +15,5 @@ export const createMysqlConnectionOptions = ({
   database: databaseEnvironment.database,
   entities,
   synchronize: databaseEnvironment.synchronize,
-  logging: nodeEnv === DEFAULT_NODE_ENV,
+  logging: nodeEnv === DEVELOPMENT_NODE_ENV,
 });

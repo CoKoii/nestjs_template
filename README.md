@@ -27,8 +27,7 @@
 | 统一响应 | 成功响应统一包裹为 `{ code, data, timestamp }` | 前端统一处理接口返回 |
 | 统一异常 | 错误响应统一包裹为 `{ code, message, data, timestamp }` | 前端统一显示错误信息 |
 | 日志 | Winston 控制台日志、按日期滚动文件日志 | 线上排查错误、记录异常上下文 |
-| Redis | 全局 Redis 客户端、启动连接检测、关闭释放连接 | 缓存、限流、验证码、队列等 |
-| 缓存 | 基于 `@nestjs/cache-manager` 和 Redis 的全局缓存 | 缓存热点数据、减少数据库查询 |
+| Redis | 全局 Redis 客户端、启动连接检测、关闭释放连接 | 缓存、限流、验证码、分布式锁 |
 | 邮件 | Nodemailer、Handlebars 模板邮件、全局邮件服务 | 注册欢迎邮件、找回密码、通知邮件 |
 | 登录认证 | 注册、登录、Access Token、Refresh Token | 用户登录后访问受保护接口 |
 | 会话管理 | `auth_sessions` 表、Refresh Token 哈希存储、退出当前/全部会话 | 多设备登录、主动失效登录态 |
@@ -50,8 +49,8 @@ pnpm install
 在项目根目录创建或修改 `.env.development`。开发环境至少需要数据库、Redis、JWT 配置。
 
 ```env
-NODE_ENV=development
 PORT=3000
+CORS_ORIGINS=
 
 DB_TYPE=mysql
 DB_HOST=127.0.0.1
@@ -63,11 +62,10 @@ DB_SYNC=true
 
 REDIS_HOST=127.0.0.1
 REDIS_PORT=6379
+REDIS_USERNAME=
+REDIS_PASSWORD=
 REDIS_DB=0
 REDIS_KEY_PREFIX=nest:
-
-CACHE_TTL_MS=60000
-CACHE_NAMESPACE=cache
 
 JWT_ACCESS_SECRET=replace-with-access-secret
 JWT_ACCESS_EXPIRES_IN=1d
@@ -75,6 +73,14 @@ JWT_REFRESH_SECRET=replace-with-refresh-secret
 JWT_REFRESH_EXPIRES_IN=7d
 
 MAIL_ENABLED=false
+MAIL_HOST=
+MAIL_PORT=587
+MAIL_SECURE=false
+MAIL_IGNORE_TLS=false
+MAIL_USER=
+MAIL_PASS=
+MAIL_FROM_NAME=NestJS Template
+MAIL_FROM_ADDRESS=
 
 LOG_ON=true
 LOG_LEVEL=info
@@ -84,7 +90,8 @@ LOG_LEVEL=info
 
 - 开发时可以设置 `DB_SYNC=true`，让 TypeORM 自动同步表结构。
 - 生产环境建议设置 `DB_SYNC=false`，改用迁移或手动 SQL。
-- Redis 是必需配置，因为缓存模块和 Redis 模块会在启动时连接 Redis。
+- Redis 是必需配置，因为 Redis 模块会在启动时连接 Redis。
+- 运行配置必须显式写在环境变量中；缺少必填项时项目会在启动阶段报错。
 
 ### 2.3 启动开发服务
 
@@ -121,7 +128,7 @@ src
 ├── app.module.ts                   # 根模块，注册全局模块、守卫、拦截器、过滤器
 ├── common
 │   ├── auth                        # 登录守卫、角色守卫、装饰器、登录用户类型
-│   ├── cache                       # Redis 客户端和全局缓存模块
+│   ├── cache                       # Redis 客户端模块
 │   ├── config                      # 环境变量读取、校验、启动配置
 │   ├── database                    # TypeORM 配置、数据库驱动、数据库错误转换
 │   ├── http                        # 统一响应、统一异常、分页 DTO
@@ -138,7 +145,7 @@ src
 
 项目按两层组织：
 
-- `common`：通用基础能力。比如数据库、缓存、登录守卫、统一异常。
+- `common`：通用基础能力。比如数据库、Redis、登录守卫、统一异常。
 - `modules`：业务模块。当前内置的是 `iam`，用于身份认证和权限管理。
 
 ## 4. 请求处理流程
@@ -191,7 +198,7 @@ AllExceptionFilter 统一捕获
 
 推荐用法：
 
-- `.env`：放通用默认值。
+- `.env`：放所有环境都会用到的显式配置。
 - `.env.development`：放本地开发配置。
 - `.env.production`：放生产配置。
 
@@ -201,13 +208,15 @@ AllExceptionFilter 统一捕获
 系统环境变量 > .env.{NODE_ENV} > .env
 ```
 
+`NODE_ENV` 不建议写在 `.env` 文件里。它应该由启动命令、Docker、CI 或部署平台提供，用来决定加载 `.env.development` 还是 `.env.production`。
+
 ### 5.2 应用配置
 
-| 变量 | 说明 | 默认值 |
+| 变量 | 说明 | 是否必填 |
 | --- | --- | --- |
-| `NODE_ENV` | 运行环境，可选 `development`、`production`、`test` | `development` |
-| `PORT` | HTTP 服务端口 | `3000` |
-| `CORS_ORIGINS` | 生产环境允许跨域的来源，多个用英文逗号分隔 | 空 |
+| `NODE_ENV` | 运行环境，可选 `development`、`production`、`test` | 由启动方式提供 |
+| `PORT` | HTTP 服务端口，例如 `3000` | 必填 |
+| `CORS_ORIGINS` | 生产环境允许跨域的来源，多个用英文逗号分隔 | 必填，可为空字符串 |
 
 生产环境 CORS 规则：
 
@@ -218,20 +227,21 @@ AllExceptionFilter 统一捕获
 示例：
 
 ```env
+PORT=3000
 CORS_ORIGINS=https://admin.example.com,https://www.example.com
 ```
 
 ### 5.3 数据库配置
 
-| 变量 | 说明 | 默认值 |
+| 变量 | 说明 | 是否必填 |
 | --- | --- | --- |
-| `DB_TYPE` | 数据库类型，可选 `mysql`、`postgres` | `mysql` |
+| `DB_TYPE` | 数据库类型，可选 `mysql`、`postgres` | 必填 |
 | `DB_HOST` | 数据库地址 | 必填 |
-| `DB_PORT` | 数据库端口 | MySQL `3306`，PostgreSQL `5432` |
+| `DB_PORT` | 数据库端口，例如 MySQL `3306`、PostgreSQL `5432` | 必填 |
 | `DB_USERNAME` | 数据库用户名 | 必填 |
 | `DB_PASSWORD` | 数据库密码 | 必填，可为空字符串 |
 | `DB_DATABASE` | 数据库名 | 必填 |
-| `DB_SYNC` | 是否自动同步表结构 | `false` |
+| `DB_SYNC` | 是否自动同步表结构 | 必填 |
 
 MySQL 示例：
 
@@ -257,28 +267,26 @@ DB_DATABASE=nestjs_demo
 DB_SYNC=true
 ```
 
-### 5.4 Redis 和缓存配置
+### 5.4 Redis 配置
 
-| 变量 | 说明 | 默认值 |
+| 变量 | 说明 | 是否必填 |
 | --- | --- | --- |
 | `REDIS_HOST` | Redis 地址 | 必填 |
-| `REDIS_PORT` | Redis 端口 | `6379` |
-| `REDIS_USERNAME` | Redis 用户名 | 空 |
-| `REDIS_PASSWORD` | Redis 密码 | 空 |
-| `REDIS_DB` | Redis DB 编号 | `0` |
-| `REDIS_KEY_PREFIX` | Redis key 前缀 | 空 |
-| `CACHE_TTL_MS` | 默认缓存时间，单位毫秒 | `60000` |
-| `CACHE_NAMESPACE` | cache-manager 命名空间 | `cache` |
+| `REDIS_PORT` | Redis 端口，例如 `6379` | 必填 |
+| `REDIS_USERNAME` | Redis 用户名 | 必填，可为空字符串 |
+| `REDIS_PASSWORD` | Redis 密码 | 必填，可为空字符串 |
+| `REDIS_DB` | Redis DB 编号，例如 `0` | 必填 |
+| `REDIS_KEY_PREFIX` | Redis key 前缀 | 必填，可为空字符串 |
 
 示例：
 
 ```env
 REDIS_HOST=127.0.0.1
 REDIS_PORT=6379
+REDIS_USERNAME=
+REDIS_PASSWORD=
 REDIS_DB=0
 REDIS_KEY_PREFIX=nest:
-CACHE_TTL_MS=60000
-CACHE_NAMESPACE=cache
 ```
 
 ### 5.5 JWT 配置
@@ -301,17 +309,17 @@ JWT_REFRESH_EXPIRES_IN=7d
 
 ### 5.6 邮件配置
 
-| 变量 | 说明 | 默认值 |
+| 变量 | 说明 | 是否必填 |
 | --- | --- | --- |
-| `MAIL_ENABLED` | 是否启用真实发信 | `false` |
-| `MAIL_HOST` | SMTP 地址 | 启用邮件时必填 |
-| `MAIL_PORT` | SMTP 端口 | `587` |
-| `MAIL_SECURE` | 是否使用 SSL/TLS | `false` |
-| `MAIL_IGNORE_TLS` | 是否忽略 TLS | `false` |
-| `MAIL_USER` | SMTP 用户名 | 空 |
-| `MAIL_PASS` | SMTP 密码 | 空 |
-| `MAIL_FROM_NAME` | 发件人名称 | `NestJS Template` |
-| `MAIL_FROM_ADDRESS` | 发件人邮箱 | 启用邮件时必填 |
+| `MAIL_ENABLED` | 是否启用真实发信 | 必填 |
+| `MAIL_HOST` | SMTP 地址 | 启用邮件时必填；关闭邮件时可为空字符串 |
+| `MAIL_PORT` | SMTP 端口，例如 `587`、`465` | 必填 |
+| `MAIL_SECURE` | 是否使用 SSL/TLS | 必填 |
+| `MAIL_IGNORE_TLS` | 是否忽略 TLS | 必填 |
+| `MAIL_USER` | SMTP 用户名 | 必填，可为空字符串 |
+| `MAIL_PASS` | SMTP 密码 | 必填，可为空字符串 |
+| `MAIL_FROM_NAME` | 发件人名称 | 必填 |
+| `MAIL_FROM_ADDRESS` | 发件人邮箱 | 启用邮件时必填；关闭邮件时可为空字符串 |
 
 示例：
 
@@ -331,10 +339,10 @@ MAIL_FROM_ADDRESS=no-reply@example.com
 
 ### 5.7 日志配置
 
-| 变量 | 说明 | 默认值 |
+| 变量 | 说明 | 是否必填 |
 | --- | --- | --- |
-| `LOG_ON` | 是否写入日志文件 | `false` |
-| `LOG_LEVEL` | 日志级别 | `info` |
+| `LOG_ON` | 是否写入日志文件 | 必填 |
+| `LOG_LEVEL` | 日志级别 | 必填 |
 
 支持的日志级别：
 
@@ -583,9 +591,9 @@ try {
 TypeORM CLI 示例：
 
 ```bash
-pnpm typeorm migration:generate ./src/migrations/Init -d ./ormconfig.ts
-pnpm typeorm migration:run -d ./ormconfig.ts
-pnpm typeorm migration:revert -d ./ormconfig.ts
+pnpm typeorm:dev migration:generate ./src/migrations/Init -d ./ormconfig.ts
+pnpm typeorm:dev migration:run -d ./ormconfig.ts
+pnpm typeorm:dev migration:revert -d ./ormconfig.ts
 ```
 
 ### 6.6 Redis 模块
@@ -630,48 +638,35 @@ export class CaptchaService {
 - 分布式锁。
 - 临时状态保存。
 
-### 6.7 缓存模块
+### 6.7 Redis 数据缓存
 
-位置：
-
-```text
-src/common/cache/cache.module.ts
-src/common/cache/keyv-redis.store.ts
-```
-
-这个模块是全局模块，基于 Redis 实现 Nest 缓存。
+Redis 模块不只适合验证码、锁和限流，也可以直接缓存数据库查询结果。
 
 使用示例：
 
 ```ts
 @Injectable()
 export class UserCacheService {
-  constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache) {}
+  constructor(@Inject(REDIS) private readonly redis: Redis) {}
 
   async getUser(id: number) {
     const key = `user:${id}`;
 
-    const cached = await this.cache.get<{ id: number; username: string }>(key);
-    if (cached) return cached;
+    const cached = await this.redis.get(key);
+    if (cached) {
+      return JSON.parse(cached) as { id: number; username: string };
+    }
 
     const user = { id, username: `user-${id}` };
-    await this.cache.set(key, user, 60_000);
+    await this.redis.set(key, JSON.stringify(user), "EX", 60);
 
     return user;
   }
 
   async clearUser(id: number) {
-    await this.cache.del(`user:${id}`);
+    await this.redis.del(`user:${id}`);
   }
 }
-```
-
-也可以用 `wrap()` 简化“先查缓存，未命中再回源”的逻辑：
-
-```ts
-return this.cache.wrap(`user:${id}:permissions`, async () => {
-  return ["user:list", "user:update"];
-});
 ```
 
 适合场景：
@@ -680,6 +675,16 @@ return this.cache.wrap(`user:${id}:permissions`, async () => {
 - 缓存菜单权限。
 - 缓存配置项。
 - 缓存读取频繁、变化较少的数据。
+
+建议约定：
+
+```text
+user:1
+settings:public
+permissions:user:1
+```
+
+所有 key 会自动带上 `REDIS_KEY_PREFIX`，例如 `nest:user:1`。
 
 ### 6.8 邮件模块
 
@@ -1861,15 +1866,25 @@ export class AccountService {
 ```ts
 @Injectable()
 export class SettingsService {
-  constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache) {}
+  constructor(@Inject(REDIS) private readonly redis: Redis) {}
 
   async getPublicSettings() {
-    return this.cache.wrap("settings:public", async () => {
-      return {
-        siteName: "NestJS Template",
-        allowRegister: true,
+    const key = "settings:public";
+    const cached = await this.redis.get(key);
+    if (cached) {
+      return JSON.parse(cached) as {
+        siteName: string;
+        allowRegister: boolean;
       };
-    });
+    }
+
+    const settings = {
+      siteName: "NestJS Template",
+      allowRegister: true,
+    };
+
+    await this.redis.set(key, JSON.stringify(settings), "EX", 300);
+    return settings;
   }
 }
 ```
@@ -1938,7 +1953,9 @@ updateUser() {
 | `pnpm test:watch` | 监听模式运行测试 |
 | `pnpm test:cov` | 生成测试覆盖率 |
 | `pnpm test:e2e` | 运行 e2e 测试配置 |
-| `pnpm typeorm` | 运行 TypeORM CLI |
+| `pnpm typeorm` | 运行 TypeORM CLI，需要外部提供 `NODE_ENV` |
+| `pnpm typeorm:dev` | 以 `NODE_ENV=development` 运行 TypeORM CLI |
+| `pnpm typeorm:prod` | 以 `NODE_ENV=production` 运行 TypeORM CLI |
 
 推荐提交前执行：
 

@@ -4,7 +4,7 @@ import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { ScheduleModule } from "@nestjs/schedule";
 import { JwtAuthGuard } from "./common/auth/jwt-auth.guard";
 import { RolesGuard } from "./common/auth/roles.guard";
-import { AppCacheModule } from "./common/cache/cache.module";
+import { RedisModule } from "./common/cache/redis.module";
 import { resolveEnvFilePaths, validateEnvironment } from "./common/config/env";
 import { DatabaseModule } from "./common/database/database.module";
 import { AllExceptionFilter } from "./common/http/exception.filter";
@@ -25,7 +25,7 @@ import { IamModule } from "./modules/iam/iam.module";
     LoggingModule,
     AppMailerModule,
     DatabaseModule,
-    AppCacheModule,
+    RedisModule,
     IamModule,
   ],
   providers: [
