@@ -1,7 +1,11 @@
+import type { BaseMessageLike } from "@langchain/core/messages";
+import { ChatOpenAI } from "@langchain/openai";
 import { BadGatewayException, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { ChatOpenAI } from "@langchain/openai";
+import { Readable } from "node:stream";
 import { getAiEnvironment } from "../../common/config/env";
+
+const SYSTEM_PROMPT = "你是一个简洁、准确的 AI 助手。";
 
 @Injectable()
 export class AiService {
@@ -22,25 +26,42 @@ export class AiService {
 
   async chat(message: string) {
     try {
-      const response = await this.chatModel.invoke([
-        {
-          role: "system",
-          content: "你是一个简洁、准确的 AI 助手。",
-        },
-        {
-          role: "user",
-          content: message,
-        },
-      ]);
+      const response = await this.chatModel.invoke(
+        this.createMessages(message),
+      );
 
       return {
-        content:
-          typeof response.content === "string"
-            ? response.content
-            : JSON.stringify(response.content),
+        content: response.text,
       };
     } catch {
       throw new BadGatewayException("AI 服务请求失败");
     }
+  }
+
+  createChatSseStream(message: string): Readable {
+    return Readable.from(this.streamSseMessages(message));
+  }
+
+  private async *streamSseMessages(message: string): AsyncGenerator<string> {
+    try {
+      const stream = await this.chatModel.stream(this.createMessages(message));
+
+      for await (const chunk of stream) {
+        if (chunk.text) {
+          yield `data: ${JSON.stringify({ content: chunk.text })}\n\n`;
+        }
+      }
+
+      yield "data: [DONE]\n\n";
+    } catch {
+      yield `event: error\ndata: ${JSON.stringify({ message: "AI 服务请求失败" })}\n\n`;
+    }
+  }
+
+  private createMessages(message: string): BaseMessageLike[] {
+    return [
+      ["system", SYSTEM_PROMPT],
+      ["human", message],
+    ];
   }
 }

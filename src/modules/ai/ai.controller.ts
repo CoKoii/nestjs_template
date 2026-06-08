@@ -1,4 +1,13 @@
-import { Body, Controller, Post } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Header,
+  HttpCode,
+  HttpStatus,
+  Post,
+  StreamableFile,
+} from "@nestjs/common";
+import { SkipResponseWrap } from "../../common/http/skip-response-wrap.decorator";
 import { AiService } from "./ai.service";
 import { ChatDto } from "./dto/chat.dto";
 
@@ -9,5 +18,16 @@ export class AiController {
   @Post("chat")
   chat(@Body() dto: ChatDto) {
     return this.aiService.chat(dto.message);
+  }
+
+  @Post("chat/stream")
+  @HttpCode(HttpStatus.OK)
+  @Header("Cache-Control", "no-cache, no-transform")
+  @Header("Connection", "keep-alive")
+  @SkipResponseWrap()
+  streamChat(@Body() dto: ChatDto): StreamableFile {
+    return new StreamableFile(this.aiService.createChatSseStream(dto.message), {
+      type: "text/event-stream; charset=utf-8",
+    });
   }
 }
