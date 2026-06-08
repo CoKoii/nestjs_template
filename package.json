@@ -24,6 +24,8 @@
     "typeorm:prod": "cross-env NODE_ENV=production typeorm-ts-node-commonjs"
   },
   "dependencies": {
+    "@langchain/core": "^1.1.48",
+    "@langchain/openai": "^1.4.7",
     "@nestjs-modules/mailer": "^2.3.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",

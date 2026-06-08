@@ -11,6 +11,7 @@ import { AllExceptionFilter } from "./common/http/exception.filter";
 import { ResponseInterceptor } from "./common/http/response.interceptor";
 import { LoggingModule } from "./common/logging/logging.module";
 import { AppMailerModule } from "./common/mailer/mailer.module";
+import { AiModule } from "./modules/ai/ai.module";
 import { IamModule } from "./modules/iam/iam.module";
 
 @Module({
@@ -27,6 +28,7 @@ import { IamModule } from "./modules/iam/iam.module";
     DatabaseModule,
     RedisModule,
     IamModule,
+    AiModule,
   ],
   providers: [
     { provide: APP_INTERCEPTOR, useClass: ResponseInterceptor },
