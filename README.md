@@ -1133,7 +1133,7 @@ src/modules/iam/auth/auth-session-cleanup.service.ts
 
 功能：
 
-- 每 `10` 分钟清理一次过期登录会话。
+- 每小时清理一次过期登录会话。
 - 每批最多删除 `500` 条。
 - 删除后记录日志。
 
