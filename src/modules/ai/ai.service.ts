@@ -42,26 +42,26 @@ export class AiService {
   // --------------------------------------------------------------------------------------------------
   // 创建流式对话响应
   createChatSseStream(message: string): Readable {
-    const chatModel = this.chatModel;
+    return Readable.from(this.streamChat(message));
+  }
 
-    return Readable.from(
-      (async function* (): AsyncGenerator<string> {
-        try {
-          const stream = await chatModel.stream([
-            ["system", "你是一个简洁、准确的 AI 助手。"],
-            ["human", message],
-          ]);
-          for await (const chunk of stream) {
-            if (chunk.text) {
-              yield `data: ${JSON.stringify({ content: chunk.text })}\n\n`;
-            }
-          }
-          yield "data: [DONE]\n\n";
-        } catch {
-          yield `event: error\ndata: ${JSON.stringify({ message: "AI 服务请求失败" })}\n\n`;
+  private async *streamChat(message: string): AsyncGenerator<string> {
+    try {
+      const stream = await this.chatModel.stream([
+        ["system", "你是一个简洁、准确的 AI 助手。"],
+        ["human", message],
+      ]);
+
+      for await (const chunk of stream) {
+        if (chunk.text) {
+          yield `data: ${JSON.stringify({ content: chunk.text })}\n\n`;
         }
-      })(),
-    );
+      }
+
+      yield "data: [DONE]\n\n";
+    } catch {
+      yield `event: error\ndata: ${JSON.stringify({ message: "AI 服务请求失败" })}\n\n`;
+    }
   }
   // --------------------------------------------------------------------------------------------------
 }
