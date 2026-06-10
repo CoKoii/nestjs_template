@@ -15,11 +15,16 @@ import { ChatDto } from "./dto/chat.dto";
 export class AiController {
   constructor(private readonly aiService: AiService) {}
 
+  // -------------------------
+  // 普通对话
   @Post("chat")
   chat(@Body() dto: ChatDto) {
     return this.aiService.chat(dto.message);
   }
+  // -------------------------
 
+  // -------------------------
+  // 流式对话
   @Post("chat/stream")
   @HttpCode(HttpStatus.OK)
   @Header("Cache-Control", "no-cache, no-transform")
@@ -30,4 +35,5 @@ export class AiController {
       type: "text/event-stream; charset=utf-8",
     });
   }
+  // -------------------------
 }

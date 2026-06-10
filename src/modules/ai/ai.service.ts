@@ -1,11 +1,8 @@
-import type { BaseMessageLike } from "@langchain/core/messages";
 import { ChatOpenAI } from "@langchain/openai";
 import { BadGatewayException, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Readable } from "node:stream";
 import { getAiEnvironment } from "../../common/config/env";
-
-const SYSTEM_PROMPT = "你是一个简洁、准确的 AI 助手。";
 
 @Injectable()
 export class AiService {
@@ -24,11 +21,14 @@ export class AiService {
     });
   }
 
+  // --------------------------------------------------------------------------------------------------
+  // 发起普通对话
   async chat(message: string) {
     try {
-      const response = await this.chatModel.invoke(
-        this.createMessages(message),
-      );
+      const response = await this.chatModel.invoke([
+        ["system", "你是一个简洁、准确的 AI 助手。"],
+        ["human", message],
+      ]);
 
       return {
         content: response.text,
@@ -37,31 +37,31 @@ export class AiService {
       throw new BadGatewayException("AI 服务请求失败");
     }
   }
+  // --------------------------------------------------------------------------------------------------
 
+  // --------------------------------------------------------------------------------------------------
+  // 创建流式对话响应
   createChatSseStream(message: string): Readable {
-    return Readable.from(this.streamSseMessages(message));
-  }
+    const chatModel = this.chatModel;
 
-  private async *streamSseMessages(message: string): AsyncGenerator<string> {
-    try {
-      const stream = await this.chatModel.stream(this.createMessages(message));
-
-      for await (const chunk of stream) {
-        if (chunk.text) {
-          yield `data: ${JSON.stringify({ content: chunk.text })}\n\n`;
+    return Readable.from(
+      (async function* (): AsyncGenerator<string> {
+        try {
+          const stream = await chatModel.stream([
+            ["system", "你是一个简洁、准确的 AI 助手。"],
+            ["human", message],
+          ]);
+          for await (const chunk of stream) {
+            if (chunk.text) {
+              yield `data: ${JSON.stringify({ content: chunk.text })}\n\n`;
+            }
+          }
+          yield "data: [DONE]\n\n";
+        } catch {
+          yield `event: error\ndata: ${JSON.stringify({ message: "AI 服务请求失败" })}\n\n`;
         }
-      }
-
-      yield "data: [DONE]\n\n";
-    } catch {
-      yield `event: error\ndata: ${JSON.stringify({ message: "AI 服务请求失败" })}\n\n`;
-    }
+      })(),
+    );
   }
-
-  private createMessages(message: string): BaseMessageLike[] {
-    return [
-      ["system", SYSTEM_PROMPT],
-      ["human", message],
-    ];
-  }
+  // --------------------------------------------------------------------------------------------------
 }
