@@ -9,6 +9,7 @@ import { createDatabaseEnvironment } from "./database.env";
 import { ENV } from "./keys";
 import { createLoggingEnvironment } from "./logging.env";
 import { createMailEnvironment } from "./mail.env";
+import { createOssEnvironment } from "./oss.env";
 import { createRedisEnvironment } from "./redis.env";
 import { getRequiredNodeEnv } from "./readers";
 import { validateEnvironment } from "./schema";
@@ -78,6 +79,9 @@ export const getAiEnvironment = (configService: Pick<ConfigService, "get">) =>
 
 export const getMailEnvironment = (configService: Pick<ConfigService, "get">) =>
   createMailEnvironment(withConfigService(configService));
+
+export const getOssEnvironment = (configService: Pick<ConfigService, "get">) =>
+  createOssEnvironment(withConfigService(configService));
 
 export const getAuthEnvironment = (configService: Pick<ConfigService, "get">) =>
   createAuthEnvironment(withConfigService(configService));

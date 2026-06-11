@@ -6,5 +6,6 @@ export * from "./keys";
 export * from "./loader";
 export * from "./logging.env";
 export * from "./mail.env";
+export * from "./oss.env";
 export * from "./redis.env";
 export * from "./schema";

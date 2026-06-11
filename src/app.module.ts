@@ -11,7 +11,9 @@ import { AllExceptionFilter } from "./common/http/exception.filter";
 import { ResponseInterceptor } from "./common/http/response.interceptor";
 import { LoggingModule } from "./common/logging/logging.module";
 import { AppMailerModule } from "./common/mailer/mailer.module";
+import { OssModule } from "./common/oss/oss.module";
 import { AiModule } from "./modules/ai/ai.module";
+import { FilesModule } from "./modules/files/files.module";
 import { IamModule } from "./modules/iam/iam.module";
 
 @Module({
@@ -25,9 +27,11 @@ import { IamModule } from "./modules/iam/iam.module";
     ScheduleModule.forRoot(),
     LoggingModule,
     AppMailerModule,
+    OssModule,
     DatabaseModule,
     RedisModule,
     IamModule,
+    FilesModule,
     AiModule,
   ],
   providers: [

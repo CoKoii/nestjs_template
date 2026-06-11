@@ -51,6 +51,9 @@ export const getExplicitOptionalString = (
   return parsed ? parsed : undefined;
 };
 
+export const getOptionalString = (value: unknown): string | undefined =>
+  typeof value === "string" && value ? value : undefined;
+
 export const parseCommaSeparatedValue = (
   value: unknown,
   key: string,
