@@ -33,16 +33,6 @@ const createObjectKey = (userId: number, filename: string) => {
   return `temporary/${year}/${month}/${day}/user-${userId}/${randomUUID()}${extension}`;
 };
 
-const assertStatus = (
-  file: FileEntity,
-  allowedStatuses: FileStatus[],
-  message: string,
-) => {
-  if (!allowedStatuses.includes(file.status)) {
-    throw new BadRequestException(message);
-  }
-};
-
 @Injectable()
 export class FilesService {
   constructor(
@@ -91,7 +81,9 @@ export class FilesService {
   async complete(id: number, userId: number) {
     const file = await this.findOwnedFile(id, userId);
 
-    assertStatus(file, [FILE_STATUS.PENDING], "文件状态不允许完成上传");
+    if (file.status !== FILE_STATUS.PENDING) {
+      throw new BadRequestException("文件状态不允许完成上传");
+    }
 
     file.status = FILE_STATUS.UPLOADED;
     return this.filesRepository.save(file);
@@ -116,7 +108,9 @@ export class FilesService {
       return file;
     }
 
-    assertStatus(file, [FILE_STATUS.UPLOADED], "文件尚未上传完成");
+    if (file.status !== FILE_STATUS.UPLOADED) {
+      throw new BadRequestException("文件尚未上传完成");
+    }
 
     file.status = FILE_STATUS.USED;
     file.usedAt = new Date();

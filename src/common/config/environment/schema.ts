@@ -67,7 +67,6 @@ export const validationSchema = Joi.object({
     then: Joi.string().trim().required(),
     otherwise: Joi.string().allow("").required(),
   }),
-  [ENV.OSS_ENDPOINT]: Joi.string().allow("").optional(),
   [ENV.OSS_ACCESS_KEY_ID]: Joi.when(ENV.OSS_ENABLED, {
     is: true,
     then: Joi.string().trim().required(),
@@ -78,7 +77,7 @@ export const validationSchema = Joi.object({
     then: Joi.string().trim().required(),
     otherwise: Joi.string().allow("").required(),
   }),
-  [ENV.OSS_PUBLIC_BASE_URL]: Joi.string().allow("").required(),
+  [ENV.OSS_PUBLIC_BASE_URL]: Joi.string().allow("").optional(),
   [ENV.OSS_UPLOAD_EXPIRES_IN]: Joi.number().integer().min(60).required(),
   [ENV.OSS_UPLOAD_MAX_SIZE]: Joi.number().integer().min(1).required(),
   [ENV.OSS_TEMP_EXPIRES_IN_HOURS]: Joi.number().integer().min(1).required(),

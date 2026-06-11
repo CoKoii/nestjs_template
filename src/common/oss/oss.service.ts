@@ -9,7 +9,6 @@ import type {
 } from "./oss.types";
 
 const trimTrailingSlash = (value: string) => value.replace(/\/$/, "");
-const removeProtocol = (value: string) => value.replace(/^https?:\/\//, "");
 
 const requireEnabledConfig = (
   config: OssEnvironment,
@@ -39,7 +38,6 @@ const createClient = (config: OssEnvironment) => {
   return new OSS({
     region: enabledConfig.region,
     bucket: enabledConfig.bucket,
-    endpoint: enabledConfig.endpoint,
     accessKeyId: enabledConfig.accessKeyId,
     accessKeySecret: enabledConfig.accessKeySecret,
     secure: true,
@@ -103,9 +101,7 @@ export class OssService {
       return "";
     }
 
-    const host = removeProtocol(
-      this.config.endpoint ?? `${this.config.region}.aliyuncs.com`,
-    );
+    const host = `${this.config.region}.aliyuncs.com`;
     return `https://${this.config.bucket}.${host}/${objectKey}`;
   }
 
