@@ -36,7 +36,7 @@ export class AppMailerService {
       return;
     }
 
-    this.logger.warn("Attempted to send email while mailer is disabled");
+    this.logger.warn("邮件服务未启用，已阻止发送邮件");
     throw new ServiceUnavailableException("邮件服务未启用");
   }
 

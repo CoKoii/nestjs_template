@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
 import { Cron, CronExpression } from "@nestjs/schedule";
@@ -17,6 +18,8 @@ const TEMPORARY_STATUSES: FileStatus[] = [
   FILE_STATUS.PENDING,
   FILE_STATUS.UPLOADED,
 ];
+const TEMPORARY_PREFIX = "temporary/";
+const USED_PREFIX = "uploads/";
 
 const normalizeExtension = (filename: string) =>
   extname(filename)
@@ -30,11 +33,18 @@ const createObjectKey = (userId: number, filename: string) => {
   const day = `${now.getDate()}`.padStart(2, "0");
   const extension = normalizeExtension(filename);
 
-  return `temporary/${year}/${month}/${day}/user-${userId}/${randomUUID()}${extension}`;
+  return `${TEMPORARY_PREFIX}${year}/${month}/${day}/user-${userId}/${randomUUID()}${extension}`;
 };
+
+const createUsedObjectKey = (objectKey: string) =>
+  objectKey.startsWith(TEMPORARY_PREFIX)
+    ? objectKey.replace(TEMPORARY_PREFIX, USED_PREFIX)
+    : objectKey;
 
 @Injectable()
 export class FilesService {
+  private readonly logger = new Logger(FilesService.name);
+
   constructor(
     @InjectRepository(FileEntity)
     private readonly filesRepository: Repository<FileEntity>,
@@ -112,9 +122,31 @@ export class FilesService {
       throw new BadRequestException("文件尚未上传完成");
     }
 
+    const usedObjectKey = createUsedObjectKey(file.objectKey);
+    const temporaryObjectKey = file.objectKey;
+    if (usedObjectKey !== file.objectKey) {
+      await this.ossService.copyObject(file.objectKey, usedObjectKey);
+      file.objectKey = usedObjectKey;
+      file.url = this.ossService.getPublicUrl(usedObjectKey);
+    }
+
     file.status = FILE_STATUS.USED;
     file.usedAt = new Date();
-    return this.filesRepository.save(file);
+    const savedFile = await this.filesRepository.save(file);
+
+    if (usedObjectKey !== temporaryObjectKey) {
+      try {
+        await this.ossService.deleteObject(temporaryObjectKey);
+      } catch (error) {
+        this.logger.warn(
+          `删除临时 OSS 对象失败 ${temporaryObjectKey}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
+
+    return savedFile;
   }
 
   @Cron(CronExpression.EVERY_HOUR)

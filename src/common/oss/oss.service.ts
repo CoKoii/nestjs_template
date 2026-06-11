@@ -22,7 +22,7 @@ const requireEnabledConfig = (
     .map(([key]) => key);
 
   if (missingKeys.length > 0) {
-    throw new Error(`${missingKeys.join(", ")} required when OSS is enabled`);
+    throw new Error(`启用 OSS 时必须配置 ${missingKeys.join(", ")}`);
   }
 
   return config as EnabledOssEnvironment;
@@ -107,5 +107,9 @@ export class OssService {
 
   async deleteObject(objectKey: string) {
     await this.ensureEnabled().delete(objectKey);
+  }
+
+  async copyObject(sourceKey: string, targetKey: string) {
+    await this.ensureEnabled().copy(targetKey, sourceKey);
   }
 }

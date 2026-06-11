@@ -13,7 +13,7 @@ export const getRequiredString = (value: unknown, key: string): string => {
     return value;
   }
 
-  throw new Error(`${key} is required`);
+  throw new Error(`必须配置 ${key}`);
 };
 
 export const getRequiredBoolean = (value: unknown, key: string): boolean => {
@@ -31,7 +31,7 @@ export const getRequiredBoolean = (value: unknown, key: string): boolean => {
     }
   }
 
-  throw new Error(`${key} must be a boolean`);
+  throw new Error(`${key} 必须是布尔值`);
 };
 
 export const getRequiredNumber = (value: unknown, key: string): number => {
@@ -40,7 +40,7 @@ export const getRequiredNumber = (value: unknown, key: string): number => {
     return parsed;
   }
 
-  throw new Error(`${key} must be a number`);
+  throw new Error(`${key} 必须是数字`);
 };
 
 export const getExplicitOptionalString = (
@@ -71,7 +71,7 @@ export const getRequiredNodeEnv = (
     return value;
   }
 
-  throw new Error(`${key} must be one of ${SUPPORTED_NODE_ENVS.join(", ")}`);
+  throw new Error(`${key} 必须是以下值之一：${SUPPORTED_NODE_ENVS.join(", ")}`);
 };
 
 const isDatabaseType = (value: unknown): value is DatabaseType =>
@@ -87,6 +87,6 @@ export const getRequiredDatabaseType = (
   }
 
   throw new Error(
-    `${key} must be one of ${SUPPORTED_DATABASE_TYPES.join(", ")}`,
+    `${key} 必须是以下值之一：${SUPPORTED_DATABASE_TYPES.join(", ")}`,
   );
 };

@@ -8,7 +8,7 @@ const templateDirectory = join(__dirname, "templates");
 
 const ensureConfiguredValue = (value: string | undefined, key: string) => {
   if (!value) {
-    throw new Error(`${key} is required when mailer is enabled`);
+    throw new Error(`启用邮件服务时必须配置 ${key}`);
   }
 
   return value;

@@ -25,10 +25,10 @@ const redisLogger = new Logger("RedisModule");
         const client = new Redis(createRedisOptions(configService));
 
         client.on("ready", () => {
-          redisLogger.log("Redis connection established");
+          redisLogger.log("Redis 连接已建立");
         });
         client.on("reconnecting", () => {
-          redisLogger.warn("Redis reconnecting");
+          redisLogger.warn("Redis 正在重连");
         });
         client.on("error", (error) => {
           redisLogger.error(error.message, error.stack);
