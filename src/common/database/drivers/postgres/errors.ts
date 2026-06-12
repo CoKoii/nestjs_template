@@ -48,31 +48,35 @@ export const rethrowPostgresError = (
   messages: DatabaseErrorMessages,
 ): never => {
   if (messages.unique && isPostgresError(error, "23505")) {
-    throw new ConflictException(messages.unique);
+    throw new ConflictException(messages.unique, { cause: error });
   }
   if (
     messages.foreignKeyConstraint &&
     isForeignKeyConstraintError(error, "reference")
   ) {
-    throw new BadRequestException(messages.foreignKeyConstraint);
+    throw new BadRequestException(messages.foreignKeyConstraint, {
+      cause: error,
+    });
   }
   if (
     messages.foreignKeyReferenced &&
     isForeignKeyConstraintError(error, "referenced")
   ) {
-    throw new BadRequestException(messages.foreignKeyReferenced);
+    throw new BadRequestException(messages.foreignKeyReferenced, {
+      cause: error,
+    });
   }
   if (messages.dataTooLong && isPostgresError(error, "22001")) {
-    throw new BadRequestException(messages.dataTooLong);
+    throw new BadRequestException(messages.dataTooLong, { cause: error });
   }
   if (messages.notNull && isPostgresError(error, "23502")) {
-    throw new BadRequestException(messages.notNull);
+    throw new BadRequestException(messages.notNull, { cause: error });
   }
   if (messages.noDefaultValue && isPostgresError(error, "23502")) {
-    throw new BadRequestException(messages.noDefaultValue);
+    throw new BadRequestException(messages.noDefaultValue, { cause: error });
   }
   if (messages.invalidValue && isPostgresError(error, "22P02")) {
-    throw new BadRequestException(messages.invalidValue);
+    throw new BadRequestException(messages.invalidValue, { cause: error });
   }
   throw error;
 };

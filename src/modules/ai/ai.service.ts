@@ -1,5 +1,5 @@
 import { ChatOpenAI } from "@langchain/openai";
-import { BadGatewayException, Injectable } from "@nestjs/common";
+import { BadGatewayException, Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { createAgent, tool } from "langchain";
 import { Readable } from "node:stream";
@@ -7,6 +7,7 @@ import * as z from "zod";
 import { getAiEnvironment } from "../../common/config/env";
 @Injectable()
 export class AiService {
+  private readonly logger = new Logger(AiService.name);
   private readonly chatModel: ChatOpenAI;
   private readonly getWeather = tool(
     (input) => `${input.city} 的天气一直是晴天！`,
@@ -18,6 +19,9 @@ export class AiService {
       }),
     },
   );
+  private readonly Answer = z.object({
+    answer: z.string().describe("AI 的回答"),
+  });
 
   constructor(configService: ConfigService) {
     const aiEnvironment = getAiEnvironment(configService);
@@ -39,6 +43,7 @@ export class AiService {
       const agent = createAgent({
         model: this.chatModel,
         tools: [this.getWeather],
+        responseFormat: this.Answer,
       });
 
       const response = await agent.invoke({
@@ -49,10 +54,10 @@ export class AiService {
       });
 
       return {
-        messages: response.messages.at(-1)?.content,
+        messages: response.structuredResponse,
       };
-    } catch {
-      throw new BadGatewayException("AI 服务请求失败");
+    } catch (error) {
+      throw new BadGatewayException("AI 服务请求失败", { cause: error });
     }
   }
   // --------------------------------------------------------------------------------------------------
@@ -69,8 +74,8 @@ export class AiService {
       return {
         content: response.text,
       };
-    } catch {
-      throw new BadGatewayException("AI 服务请求失败");
+    } catch (error) {
+      throw new BadGatewayException("AI 服务请求失败", { cause: error });
     }
   }
   // --------------------------------------------------------------------------------------------------
@@ -95,7 +100,11 @@ export class AiService {
       }
 
       yield "data: [DONE]\n\n";
-    } catch {
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack : undefined;
+
+      this.logger.error(`AI 流式服务请求失败: ${message}`, stack);
       yield `event: error\ndata: ${JSON.stringify({ message: "AI 服务请求失败" })}\n\n`;
     }
   }

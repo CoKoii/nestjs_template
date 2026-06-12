@@ -9,9 +9,12 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
 const SENSITIVE_KEYWORDS = [
+  "accesskeyid",
+  "accesskeysecret",
   "apikey",
   "authorization",
   "confirmpassword",
+  "cookie",
   "mailpass",
   "pass",
   "password",
@@ -36,6 +39,13 @@ export type ExceptionLog = {
   errorMessage?: string;
   exception: string;
   errorStack?: string;
+  causes?: ExceptionCause[];
+};
+
+type ExceptionCause = {
+  message: string;
+  exception: string;
+  stack?: string;
 };
 
 const maskString = (value: string) =>
@@ -103,28 +113,80 @@ const sanitizeToken = (authorization: string | string[] | null | undefined) => {
   return token ? maskString(token) : null;
 };
 
+const getCause = (error: Error): unknown =>
+  (error as { cause?: unknown }).cause;
+
+const describeCause = (
+  cause: unknown,
+  includeStack: boolean,
+): ExceptionCause => {
+  if (cause instanceof Error) {
+    return {
+      message: cause.message,
+      exception: cause.name,
+      ...(includeStack ? { stack: cause.stack } : {}),
+    };
+  }
+
+  return {
+    message: toMessage(cause),
+    exception: typeof cause,
+  };
+};
+
+const collectCauses = (
+  error: Error | undefined,
+  includeStack: boolean,
+): ExceptionCause[] | undefined => {
+  if (!error) {
+    return undefined;
+  }
+
+  const causes: ExceptionCause[] = [];
+  const seen = new WeakSet<object>();
+  let current = getCause(error);
+
+  while (current !== undefined && current !== null) {
+    causes.push(describeCause(current, includeStack));
+
+    if (!(current instanceof Error) || seen.has(current)) {
+      break;
+    }
+
+    seen.add(current);
+    current = getCause(current);
+  }
+
+  return causes.length ? causes : undefined;
+};
+
 export const buildExceptionLog = (
   context: string,
   request: Request & { user?: unknown },
   statusCode: number,
   message: string,
   error?: Error,
-): ExceptionLog => ({
-  context,
-  method: request.method,
-  path: request.originalUrl ?? request.url,
-  ip: request.ip,
-  params: sanitizeValue(request.params ?? null),
-  query: sanitizeValue(request.query ?? null),
-  body: sanitizeValue((request.body as unknown) ?? null),
-  user: sanitizeValue(request.user ?? null),
-  token: sanitizeToken(request.headers["authorization"] ?? null),
-  statusCode,
-  exceptionMessage: message,
-  errorMessage: error?.message,
-  exception: error?.name ?? "UnknownException",
-  ...(statusCode >= 500 ? { errorStack: error?.stack } : {}),
-});
+): ExceptionLog => {
+  const isServerError = statusCode >= 500;
+
+  return {
+    context,
+    method: request.method,
+    path: request.originalUrl ?? request.url,
+    ip: request.ip,
+    params: sanitizeValue(request.params ?? null),
+    query: sanitizeValue(request.query ?? null),
+    body: sanitizeValue((request.body as unknown) ?? null),
+    user: sanitizeValue(request.user ?? null),
+    token: sanitizeToken(request.headers["authorization"] ?? null),
+    statusCode,
+    exceptionMessage: message,
+    errorMessage: error?.message,
+    exception: error?.name ?? "UnknownException",
+    causes: collectCauses(error, isServerError),
+    ...(isServerError ? { errorStack: error?.stack } : {}),
+  };
+};
 
 export const buildExceptionResponse = (
   statusCode: number,
