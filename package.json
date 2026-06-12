@@ -45,6 +45,7 @@
     "handlebars": "^4.7.8",
     "ioredis": "^5.10.0",
     "joi": "^18.0.2",
+    "langchain": "^1.4.4",
     "mysql2": "^3.16.1",
     "nest-winston": "^1.10.2",
     "nodemailer": "^8.0.3",
@@ -55,7 +56,8 @@
     "rxjs": "^7.8.1",
     "typeorm": "^0.3.28",
     "winston": "^3.19.0",
-    "winston-daily-rotate-file": "^5.0.0"
+    "winston-daily-rotate-file": "^5.0.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

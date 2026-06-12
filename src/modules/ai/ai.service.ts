@@ -1,12 +1,23 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { BadGatewayException, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { createAgent, tool } from "langchain";
 import { Readable } from "node:stream";
+import * as z from "zod";
 import { getAiEnvironment } from "../../common/config/env";
-
 @Injectable()
 export class AiService {
   private readonly chatModel: ChatOpenAI;
+  private readonly getWeather = tool(
+    (input) => `${input.city} 的天气一直是晴天！`,
+    {
+      name: "get_weather",
+      description: "查询指定城市的天气",
+      schema: z.object({
+        city: z.string().describe("要查询天气的城市"),
+      }),
+    },
+  );
 
   constructor(configService: ConfigService) {
     const aiEnvironment = getAiEnvironment(configService);
@@ -14,12 +25,37 @@ export class AiService {
     this.chatModel = new ChatOpenAI({
       apiKey: aiEnvironment.apiKey,
       model: aiEnvironment.chatModel,
+      maxRetries: 1,
       temperature: aiEnvironment.temperature,
       configuration: aiEnvironment.baseUrl
         ? { baseURL: aiEnvironment.baseUrl }
         : undefined,
     });
   }
+  // --------------------------------------------------------------------------------------------------
+  // 学习测试用
+  async learn(message: string) {
+    try {
+      const agent = createAgent({
+        model: this.chatModel,
+        tools: [this.getWeather],
+      });
+
+      const response = await agent.invoke({
+        messages: [
+          { role: "system", content: "你是一个简洁、准确的 AI 助手。" },
+          { role: "user", content: message },
+        ],
+      });
+
+      return {
+        messages: response.messages.at(-1)?.content,
+      };
+    } catch {
+      throw new BadGatewayException("AI 服务请求失败");
+    }
+  }
+  // --------------------------------------------------------------------------------------------------
 
   // --------------------------------------------------------------------------------------------------
   // 发起普通对话

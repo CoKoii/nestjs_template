@@ -36,4 +36,12 @@ export class AiController {
     });
   }
   // -------------------------
+
+  // -------------------------
+  // 学习测试用
+  @Post("learn")
+  learn(@Body() dto: ChatDto) {
+    return this.aiService.learn(dto.message);
+  }
+  // -------------------------
 }
