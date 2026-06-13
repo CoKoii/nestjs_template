@@ -22,10 +22,8 @@ export class AiService {
   private readonly Answer = z.object({
     answer: z.string().describe("AI 的回答"),
   });
-
   constructor(configService: ConfigService) {
     const aiEnvironment = getAiEnvironment(configService);
-
     this.chatModel = new ChatOpenAI({
       apiKey: aiEnvironment.apiKey,
       model: aiEnvironment.chatModel,
