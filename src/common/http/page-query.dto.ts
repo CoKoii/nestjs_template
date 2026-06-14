@@ -22,6 +22,9 @@ export class PageQueryDto {
 export interface PageResult<T> {
   items: T[];
   total: number;
+  page: number;
+  pageSize: number;
+  pages: number;
 }
 
 export const resolvePageQuery = (query: PageQueryDto) => {
@@ -34,3 +37,16 @@ export const resolvePageQuery = (query: PageQueryDto) => {
     skip: (page - 1) * pageSize,
   };
 };
+
+export const createPageResult = <T>(
+  items: T[],
+  total: number,
+  page: number,
+  pageSize: number,
+): PageResult<T> => ({
+  items,
+  total,
+  page,
+  pageSize,
+  pages: Math.ceil(total / pageSize),
+});

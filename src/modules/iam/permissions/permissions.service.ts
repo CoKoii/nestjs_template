@@ -2,10 +2,12 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import {
+  createPageResult,
   type PageResult,
   resolvePageQuery,
 } from "../../../common/http/page-query.dto";
-import { rethrowDatabaseError } from "../../../common/database/database-error.util";
+import { DatabaseErrorMapper } from "../../../common/database/database-error.mapper";
+import { AuthPermissionCacheService } from "../auth/auth-permission-cache.service";
 import { CreatePermissionDto } from "./dto/create-permission.dto";
 import type { QueryPermissionsDto } from "./dto/query-permissions.dto";
 import { UpdatePermissionDto } from "./dto/update-permission.dto";
@@ -16,6 +18,8 @@ export class PermissionsService {
   constructor(
     @InjectRepository(Permission)
     private readonly permissionRepository: Repository<Permission>,
+    private readonly permissionCache: AuthPermissionCacheService,
+    private readonly databaseErrorMapper: DatabaseErrorMapper,
   ) {}
 
   // --------------------------------------------------------------------------------------------------
@@ -23,9 +27,10 @@ export class PermissionsService {
   async create(createPermissionDto: CreatePermissionDto) {
     try {
       await this.permissionRepository.save(createPermissionDto);
-      return "创建成功";
+      await this.permissionCache.invalidateAll();
+      return { success: true };
     } catch (error) {
-      rethrowDatabaseError(error, {
+      this.databaseErrorMapper.rethrow(error, {
         unique: `权限码 "${createPermissionDto.code}" 已存在`,
       });
     }
@@ -35,7 +40,7 @@ export class PermissionsService {
   // --------------------------------------------------------------------------------------------------
   // 获取权限列表
   async list(query: QueryPermissionsDto): Promise<PageResult<Permission>> {
-    const { pageSize, skip } = resolvePageQuery(query);
+    const { page, pageSize, skip } = resolvePageQuery(query);
     const code = query.code?.trim();
     const queryBuilder = this.permissionRepository
       .createQueryBuilder("permission")
@@ -50,7 +55,7 @@ export class PermissionsService {
     }
 
     const [items, total] = await queryBuilder.getManyAndCount();
-    return { items, total };
+    return createPageResult(items, total, page, pageSize);
   }
   // --------------------------------------------------------------------------------------------------
 
@@ -64,12 +69,13 @@ export class PermissionsService {
       });
       if (!permission) throw new NotFoundException("权限不存在");
       await this.permissionRepository.save(permission);
-      return "更新成功";
+      await this.permissionCache.invalidateAll();
+      return { success: true };
     } catch (error) {
       const duplicateMessage = updatePermissionDto.code
         ? `权限码 "${updatePermissionDto.code}" 已存在`
         : "权限码已存在";
-      rethrowDatabaseError(error, {
+      this.databaseErrorMapper.rethrow(error, {
         unique: duplicateMessage,
       });
     }

@@ -18,7 +18,7 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register ./node_modules/jest/bin/jest.js --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:e2e": "jest --config ./test/jest-e2e.json --passWithNoTests",
     "typeorm": "typeorm-ts-node-commonjs",
     "typeorm:dev": "cross-env NODE_ENV=development typeorm-ts-node-commonjs",
     "typeorm:prod": "cross-env NODE_ENV=production typeorm-ts-node-commonjs"

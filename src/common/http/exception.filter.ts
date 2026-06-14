@@ -7,9 +7,10 @@ import {
   Inject,
 } from "@nestjs/common";
 import { HttpAdapterHost } from "@nestjs/core";
-import type { Request, Response } from "express";
+import type { Response } from "express";
 import { WINSTON_MODULE_PROVIDER } from "nest-winston";
 import type { Logger } from "winston";
+import type { RequestWithRequestId } from "./request-id.middleware";
 import {
   buildExceptionLog,
   buildExceptionResponse,
@@ -28,7 +29,7 @@ export class AllExceptionFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost) {
     const { httpAdapter } = this.httpAdapterHost;
     const ctx = host.switchToHttp();
-    const request = ctx.getRequest<Request>();
+    const request = ctx.getRequest<RequestWithRequestId>();
     const response = ctx.getResponse<Response>();
     const httpStatus =
       exception instanceof HttpException
@@ -53,7 +54,7 @@ export class AllExceptionFilter implements ExceptionFilter {
 
     httpAdapter.reply(
       response,
-      buildExceptionResponse(httpStatus, message),
+      buildExceptionResponse(httpStatus, message, request.requestId),
       httpStatus,
     );
   }

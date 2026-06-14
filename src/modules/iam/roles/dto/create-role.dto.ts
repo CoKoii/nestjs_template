@@ -1,6 +1,7 @@
 import { Type } from "class-transformer";
 import {
   IsArray,
+  ArrayUnique,
   IsBoolean,
   IsInt,
   IsNotEmpty,
@@ -8,6 +9,7 @@ import {
   IsString,
   Length,
   Matches,
+  Min,
 } from "class-validator";
 
 export class CreateRoleDto {
@@ -28,7 +30,9 @@ export class CreateRoleDto {
 
   @IsOptional()
   @IsArray({ message: "权限ID必须为数组" })
+  @ArrayUnique({ message: "权限ID不能重复" })
   @Type(() => Number)
   @IsInt({ each: true, message: "权限ID必须为整数数组" })
+  @Min(1, { each: true, message: "权限ID必须大于0" })
   permissions?: number[];
 }

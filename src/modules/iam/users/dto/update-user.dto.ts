@@ -1,13 +1,16 @@
 import { Type } from "class-transformer";
 import {
   IsArray,
-  IsBoolean,
+  IsEnum,
   IsInt,
+  Min,
   IsString,
   Length,
   IsOptional,
+  ArrayUnique,
   ValidateNested,
 } from "class-validator";
+import { UserStatus } from "../user.entity";
 
 class UpdateUserProfileDto {
   @IsOptional()
@@ -24,11 +27,13 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsArray({ message: "角色ID必须为数组" })
+  @ArrayUnique({ message: "角色ID不能重复" })
   @Type(() => Number)
   @IsInt({ each: true, message: "角色ID必须为整数数组" })
+  @Min(1, { each: true, message: "角色ID必须大于0" })
   roles?: number[];
 
   @IsOptional()
-  @IsBoolean({ message: "状态必须为布尔值" })
-  status?: boolean;
+  @IsEnum(UserStatus, { message: "用户状态不合法" })
+  status?: UserStatus;
 }

@@ -72,7 +72,7 @@ export class AuthController {
   // 退出登录
   @HttpCode(HttpStatus.OK)
   @Post("logout")
-  logout(@CurrentUser() user: AuthUser): Promise<string> {
+  logout(@CurrentUser() user: AuthUser): Promise<{ success: true }> {
     return this.authService.logout(user);
   }
   // -------------------------
@@ -81,7 +81,7 @@ export class AuthController {
   // 退出全部登录会话
   @HttpCode(HttpStatus.OK)
   @Post("logout-all")
-  logoutAll(@CurrentUser() user: AuthUser): Promise<string> {
+  logoutAll(@CurrentUser() user: AuthUser): Promise<{ success: true }> {
     return this.authService.logoutAll(user);
   }
   // -------------------------

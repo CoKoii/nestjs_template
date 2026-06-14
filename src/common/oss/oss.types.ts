@@ -14,3 +14,8 @@ export interface SignedUploadUrl {
   headers: Record<string, string>;
   expiresAt: Date;
 }
+
+export interface OssObjectMetadata {
+  size: number;
+  contentType: string;
+}

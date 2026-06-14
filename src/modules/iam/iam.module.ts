@@ -5,9 +5,11 @@ import { TypeOrmModule } from "@nestjs/typeorm";
 import { AuthSessionCleanupService } from "./auth/auth-session-cleanup.service";
 import { AuthSession } from "./auth/auth-session.entity";
 import { AuthController } from "./auth/auth.controller";
+import { AuthPermissionCacheService } from "./auth/auth-permission-cache.service";
 import { AuthService } from "./auth/auth.service";
 import { JwtRefreshStrategy } from "./auth/jwt-refresh.strategy";
 import { JwtStrategy } from "./auth/jwt.strategy";
+import { LoginRateLimitService } from "./auth/login-rate-limit.service";
 import { Permission } from "./permissions/permission.entity";
 import { PermissionsController } from "./permissions/permissions.controller";
 import { PermissionsService } from "./permissions/permissions.service";
@@ -36,9 +38,11 @@ import { UsersService } from "./users/users.service";
   ],
   providers: [
     AuthService,
+    AuthPermissionCacheService,
     AuthSessionCleanupService,
     JwtStrategy,
     JwtRefreshStrategy,
+    LoginRateLimitService,
     UsersService,
     RolesService,
     PermissionsService,

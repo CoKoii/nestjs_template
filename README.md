@@ -1,6 +1,6 @@
 # NestJS Template 后端模板说明手册
 
-这是一个基于 NestJS 的通用后端模板，已经内置常见后端基础能力：环境配置、数据库、统一响应、统一异常、JWT 登录、刷新令牌、会话管理、角色权限、Redis 缓存、邮件、日志、参数校验和分页查询。
+这是一个基于 NestJS 的通用后端模板，已经内置常见后端基础能力：环境配置、数据库、统一响应、统一异常、请求追踪、JWT 登录、刷新令牌、会话管理、角色权限、权限码守卫、Redis 缓存、登录限流、邮件、日志、OSS 文件直传、AI 可选模块、参数校验和分页查询。
 
 适合用来快速开始一个管理后台、业务 API、课程项目或中小型服务端项目。
 
@@ -13,28 +13,31 @@
 - [5. 环境配置](#5-环境配置)
 - [6. 基础设施模块](#6-基础设施模块)
 - [7. IAM 身份与权限模块](#7-iam-身份与权限模块)
-- [8. 接口清单](#8-接口清单)
-- [9. 常见开发示例](#9-常见开发示例)
-- [10. 开发命令](#10-开发命令)
+- [8. 文件上传模块](#8-文件上传模块)
+- [9. 接口清单](#9-接口清单)
+- [10. 常见开发示例](#10-常见开发示例)
+- [11. 开发命令](#11-开发命令)
 
 ## 1. 项目能力概览
 
 | 功能 | 已实现内容 | 常见使用场景 |
 | --- | --- | --- |
-| 环境配置 | `.env`、`.env.development`、`.env.production`、Joi 校验 | 不同环境使用不同数据库、Redis、JWT 密钥 |
+| 环境配置 | `.env`、`.env.development`、`.env.production`、Joi 校验、真实 env 不入库 | 不同环境使用不同数据库、Redis、JWT 密钥 |
 | 启动配置 | 全局前缀、CORS、参数校验、关闭钩子 | 统一 API 入口和请求校验 |
-| 数据库 | TypeORM、MySQL、PostgreSQL、实体自动扫描、数据库错误转换 | 保存用户、角色、权限等业务数据 |
-| 统一响应 | 成功响应统一包裹为 `{ code, data, timestamp }` | 前端统一处理接口返回 |
-| 统一异常 | 错误响应统一包裹为 `{ code, message, data, timestamp }` | 前端统一显示错误信息 |
-| 日志 | Winston 控制台日志、按日期滚动文件日志 | 线上排查错误、记录异常上下文 |
-| Redis | 全局 Redis 客户端、启动连接检测、关闭释放连接 | 缓存、限流、验证码、分布式锁 |
+| 数据库 | TypeORM、MySQL、PostgreSQL、实体自动扫描、审计基础实体、数据库错误转换 | 保存用户、角色、权限等业务数据 |
+| 统一响应 | 成功响应统一包裹为 `{ code, data, requestId, timestamp }` | 前端统一处理接口返回 |
+| 统一异常 | 错误响应统一包裹为 `{ code, message, data, requestId, timestamp }` | 前端统一显示错误并关联日志 |
+| 日志 | Winston 控制台日志、按日期滚动文件日志、requestId 追踪 | 线上排查错误、记录异常上下文 |
+| Redis | 全局 Redis 客户端、权限缓存、登录限流、启动连接检测、关闭释放连接 | 缓存、限流、验证码、分布式锁 |
 | 邮件 | Nodemailer、Handlebars 模板邮件、全局邮件服务 | 注册欢迎邮件、找回密码、通知邮件 |
-| 登录认证 | 注册、登录、Access Token、Refresh Token | 用户登录后访问受保护接口 |
+| 登录认证 | 注册、登录、Access Token、Refresh Token、失败次数锁定 | 用户登录后访问受保护接口 |
 | 会话管理 | `auth_sessions` 表、Refresh Token 哈希存储、退出当前/全部会话 | 多设备登录、主动失效登录态 |
 | 角色控制 | `@Roles()`、全局角色守卫 | 管理员接口、后台管理权限 |
-| 权限码 | 权限表、角色绑定权限、查询当前用户权限码 | 前端菜单按钮控制、后续扩展权限守卫 |
+| 权限码 | 权限表、角色绑定权限、`@Permissions()`、全局权限守卫 | 前端菜单按钮控制、服务端按钮级授权 |
 | 用户资料 | 当前用户资料查询、用户资料与账号一对一 | 个人中心、后台用户管理 |
-| 分页查询 | `PageQueryDto`、`PageResult` | 列表接口统一分页 |
+| 文件上传 | OSS 预签名直传、文件元数据、上传完成校验、临时文件清理 | 用户头像、附件、业务文件 |
+| AI 模块 | `AI_ENABLED` 控制是否注册 AI 接口 | 学习或按项目启用 AI 能力 |
+| 分页查询 | `PageQueryDto`、`PageResult`、页码元信息 | 列表接口统一分页 |
 
 ## 2. 快速启动
 
@@ -46,7 +49,13 @@ pnpm install
 
 ### 2.2 准备环境变量
 
-在项目根目录创建或修改 `.env.development`。开发环境至少需要数据库、Redis、JWT 配置。
+真实 `.env*` 文件不会入库。首次启动前可以从示例文件复制：
+
+```bash
+cp .env.development.example .env.development
+```
+
+然后修改 `.env.development`。开发环境至少需要数据库、Redis、JWT 配置。
 
 ```env
 PORT=3000
@@ -82,6 +91,22 @@ MAIL_PASS=
 MAIL_FROM_NAME=NestJS Template
 MAIL_FROM_ADDRESS=
 
+AI_ENABLED=false
+AI_API_KEY=
+AI_BASE_URL=
+AI_CHAT_MODEL=
+AI_TEMPERATURE=0.7
+
+OSS_ENABLED=false
+OSS_REGION=oss-cn-hangzhou
+OSS_BUCKET=
+OSS_ACCESS_KEY_ID=
+OSS_ACCESS_KEY_SECRET=
+OSS_PUBLIC_BASE_URL=
+OSS_UPLOAD_EXPIRES_IN=600
+OSS_UPLOAD_MAX_SIZE=10485760
+OSS_TEMP_EXPIRES_IN_HOURS=24
+
 LOG_ON=true
 LOG_LEVEL=info
 ```
@@ -91,6 +116,7 @@ LOG_LEVEL=info
 - 开发时可以设置 `DB_SYNC=true`，让 TypeORM 自动同步表结构。
 - 生产环境建议设置 `DB_SYNC=false`，改用迁移或手动 SQL。
 - Redis 是必需配置，因为 Redis 模块会在启动时连接 Redis。
+- `AI_ENABLED=false` 时不会注册 AI 接口，也不强制要求 AI key。
 - 运行配置必须显式写在环境变量中；缺少必填项时项目会在启动阶段报错。
 
 ### 2.3 启动开发服务
@@ -127,14 +153,16 @@ src
 ├── main.ts                         # 应用入口
 ├── app.module.ts                   # 根模块，注册全局模块、守卫、拦截器、过滤器
 ├── common
-│   ├── auth                        # 登录守卫、角色守卫、装饰器、登录用户类型
+│   ├── auth                        # 登录守卫、角色守卫、权限守卫、装饰器、登录用户类型
 │   ├── cache                       # Redis 客户端模块
 │   ├── config                      # 环境变量读取、校验、启动配置
-│   ├── database                    # TypeORM 配置、数据库驱动、数据库错误转换
-│   ├── http                        # 统一响应、统一异常、分页 DTO
+│   ├── database                    # TypeORM 配置、基础实体、数据库驱动、数据库错误转换
+│   ├── http                        # 统一响应、统一异常、requestId、分页 DTO
 │   ├── logging                     # Winston 日志
 │   └── mailer                      # 邮件模块、模板邮件服务
 └── modules
+    ├── ai                          # AI 示例模块，可通过 AI_ENABLED 开关启用
+    ├── files                       # OSS 文件直传和文件元数据
     └── iam
         ├── auth                    # 注册、登录、刷新令牌、退出登录、会话清理
         ├── users                   # 用户管理
@@ -162,6 +190,8 @@ ValidationPipe 参数校验和类型转换
 JwtAuthGuard 判断是否登录
   ↓
 RolesGuard 判断角色是否满足 @Roles()
+  ↓
+PermissionsGuard 判断权限码是否满足 @Permissions()
   ↓
 Controller 接收请求
   ↓
@@ -198,9 +228,10 @@ AllExceptionFilter 统一捕获
 
 推荐用法：
 
-- `.env`：放所有环境都会用到的显式配置。
-- `.env.development`：放本地开发配置。
-- `.env.production`：放生产配置。
+- `.env.example`、`.env.development.example`、`.env.production.example`：提交到仓库，作为配置模板。
+- `.env`：真实本地配置，不入库。
+- `.env.development`：真实开发配置，不入库。
+- `.env.production`：真实生产配置，不入库。
 
 最终优先级可以理解为：
 
@@ -357,6 +388,58 @@ LOG_ON=true
 LOG_LEVEL=info
 ```
 
+### 5.8 AI 配置
+
+AI 模块是可选模块，由 `AI_ENABLED` 控制是否注册 `/api/ai/*` 接口。
+
+| 变量 | 说明 | 是否必填 |
+| --- | --- | --- |
+| `AI_ENABLED` | 是否启用 AI 模块 | 必填 |
+| `AI_API_KEY` | AI 服务 API Key | 启用 AI 时必填；关闭 AI 时可为空字符串 |
+| `AI_BASE_URL` | AI 服务 Base URL，兼容 OpenAI 协议时可配置 | 必填，可为空字符串 |
+| `AI_CHAT_MODEL` | 对话模型名称 | 启用 AI 时必填；关闭 AI 时可为空字符串 |
+| `AI_TEMPERATURE` | 模型温度，范围 `0` 到 `2` | 必填 |
+
+示例：
+
+```env
+AI_ENABLED=false
+AI_API_KEY=
+AI_BASE_URL=
+AI_CHAT_MODEL=
+AI_TEMPERATURE=0.7
+```
+
+### 5.9 OSS 配置
+
+OSS 模块用于文件预签名直传。关闭 OSS 时项目可以启动，但调用文件上传意图接口会返回服务不可用。
+
+| 变量 | 说明 | 是否必填 |
+| --- | --- | --- |
+| `OSS_ENABLED` | 是否启用 OSS | 必填 |
+| `OSS_REGION` | OSS region | 必填 |
+| `OSS_BUCKET` | OSS bucket | 启用 OSS 时必填；关闭 OSS 时可为空字符串 |
+| `OSS_ACCESS_KEY_ID` | 访问密钥 ID | 启用 OSS 时必填；关闭 OSS 时可为空字符串 |
+| `OSS_ACCESS_KEY_SECRET` | 访问密钥 Secret | 启用 OSS 时必填；关闭 OSS 时可为空字符串 |
+| `OSS_PUBLIC_BASE_URL` | 自定义公开访问域名 | 可选 |
+| `OSS_UPLOAD_EXPIRES_IN` | 上传 URL 有效期，单位秒，最小 `60` | 必填 |
+| `OSS_UPLOAD_MAX_SIZE` | 最大上传大小，单位字节 | 必填 |
+| `OSS_TEMP_EXPIRES_IN_HOURS` | 临时文件过期小时数 | 必填 |
+
+示例：
+
+```env
+OSS_ENABLED=false
+OSS_REGION=oss-cn-hangzhou
+OSS_BUCKET=
+OSS_ACCESS_KEY_ID=
+OSS_ACCESS_KEY_SECRET=
+OSS_PUBLIC_BASE_URL=
+OSS_UPLOAD_EXPIRES_IN=600
+OSS_UPLOAD_MAX_SIZE=10485760
+OSS_TEMP_EXPIRES_IN_HOURS=24
+```
+
 ## 6. 基础设施模块
 
 ### 6.1 启动配置模块
@@ -428,6 +511,7 @@ hello() {
   "data": {
     "message": "ok"
   },
+  "requestId": "4f4a3f2e-5c8e-4c4f-8a37-3f9a1e8f5c22",
   "timestamp": "2026-06-08T10:00:00.000Z"
 }
 ```
@@ -436,6 +520,7 @@ hello() {
 
 - 前端统一判断 `code === 0` 表示成功。
 - 所有接口返回格式一致，降低联调成本。
+- 前端可以把 `requestId` 提供给后端排查日志。
 
 ### 6.3 统一异常模块
 
@@ -461,6 +546,7 @@ throw new NotFoundException("用户不存在");
   "code": 404,
   "message": "用户不存在",
   "data": null,
+  "requestId": "4f4a3f2e-5c8e-4c4f-8a37-3f9a1e8f5c22",
   "timestamp": "2026-06-08T10:00:00.000Z"
 }
 ```
@@ -468,6 +554,7 @@ throw new NotFoundException("用户不存在");
 日志会记录：
 
 - 请求方法和路径。
+- requestId。
 - IP、params、query、body。
 - 当前登录用户。
 - 异常名和堆栈。
@@ -504,6 +591,9 @@ src/common/http/page-query.dto.ts
 export interface PageResult<T> {
   items: T[];
   total: number;
+  page: number;
+  pageSize: number;
+  pages: number;
 }
 ```
 
@@ -517,7 +607,7 @@ export class QueryArticlesDto extends PageQueryDto {
 }
 
 async list(query: QueryArticlesDto): Promise<PageResult<Article>> {
-  const { pageSize, skip } = resolvePageQuery(query);
+  const { page, pageSize, skip } = resolvePageQuery(query);
 
   const [items, total] = await this.articleRepository.findAndCount({
     skip,
@@ -525,7 +615,7 @@ async list(query: QueryArticlesDto): Promise<PageResult<Article>> {
     order: { id: "DESC" },
   });
 
-  return { items, total };
+  return createPageResult(items, total, page, pageSize);
 }
 ```
 
@@ -560,10 +650,12 @@ src/common/database
 数据库错误转换示例：
 
 ```ts
+constructor(private readonly databaseErrorMapper: DatabaseErrorMapper) {}
+
 try {
   await this.permissionRepository.save(dto);
 } catch (error) {
-  rethrowDatabaseError(error, {
+  this.databaseErrorMapper.rethrow(error, {
     unique: `权限码 "${dto.code}" 已存在`,
     foreignKeyConstraint: "关联数据不存在",
   });
@@ -821,6 +913,7 @@ User 1 -- 1 Profile
 User N -- N Role
 Role N -- N Permission
 User 1 -- N AuthSession
+User 1 -- N File
 ```
 
 含义：
@@ -829,6 +922,17 @@ User 1 -- N AuthSession
 - 一个用户可以有多个角色。
 - 一个角色可以有多个权限码。
 - 一个用户可以有多个登录会话，比如电脑登录一次、手机登录一次。
+- 一个用户可以上传多个文件，文件记录通过 `userId` 关联用户。
+
+核心实体继承统一审计字段：
+
+| 字段 | 说明 |
+| --- | --- |
+| `createdAt` | 创建时间 |
+| `updatedAt` | 更新时间 |
+| `deletedAt` | 软删除时间 |
+| `createdBy` | 创建人 ID |
+| `updatedBy` | 更新人 ID |
 
 #### User 用户
 
@@ -845,7 +949,7 @@ users
 | `id` | 用户 ID |
 | `username` | 用户名，唯一 |
 | `password` | 密码哈希，默认查询不返回 |
-| `status` | 账号状态，`false` 表示禁用 |
+| `status` | 账号状态，可选 `active`、`disabled`、`locked` |
 | `createdAt` | 创建时间 |
 | `updatedAt` | 更新时间 |
 
@@ -918,7 +1022,7 @@ role:create
 permission:update
 ```
 
-当前项目会把用户拥有的权限码放进 `CurrentUser.permissions`，并提供 `/api/permissions/me` 查询。项目暂时没有内置“权限码守卫”，如果需要按权限码拦截接口，可以基于 `user.permissions` 扩展一个 guard。
+当前项目会把用户拥有的权限码放进 `CurrentUser.permissions`，并提供 `/api/permissions/me` 查询。服务端已经内置 `@Permissions()` 装饰器和全局 `PermissionsGuard`，管理接口按权限码校验；`admin` 角色拥有超级管理员兜底权限。
 
 #### AuthSession 登录会话
 
@@ -1024,7 +1128,7 @@ POST /api/auth/login
 规则：
 
 - 用户名和密码必须正确。
-- 用户 `status=false` 时不能登录。
+- 用户 `status` 为 `disabled` 或 `locked` 时不能登录。
 
 响应：
 
@@ -1144,11 +1248,12 @@ src/modules/iam/auth/auth-session-cleanup.service.ts
 
 ### 7.7 登录守卫和装饰器
 
-项目已经在 `AppModule` 注册了两个全局守卫：
+项目已经在 `AppModule` 注册了三个全局守卫：
 
 ```ts
 { provide: APP_GUARD, useClass: JwtAuthGuard }
 { provide: APP_GUARD, useClass: RolesGuard }
+{ provide: APP_GUARD, useClass: PermissionsGuard }
 ```
 
 这意味着：
@@ -1156,6 +1261,8 @@ src/modules/iam/auth/auth-session-cleanup.service.ts
 - 默认所有接口都需要登录。
 - 只有加了 `@Public()` 的接口才不需要登录。
 - 加了 `@Roles()` 的接口需要登录，并且用户必须拥有指定角色。
+- 加了 `@Permissions()` 的接口需要登录，并且用户必须拥有指定权限码。
+- `admin` 角色会通过权限码守卫，适合作为超级管理员兜底。
 
 #### `@Public()`
 
@@ -1213,6 +1320,26 @@ create() {
   return this.articlesService.create();
 }
 ```
+
+#### `@Permissions()`
+
+用途：
+
+```text
+限制接口只能由拥有指定权限码的用户访问
+```
+
+示例：
+
+```ts
+@Permissions("user:update")
+@Put(":id")
+update() {
+  return this.usersService.update();
+}
+```
+
+如果用户拥有 `admin` 角色，会作为超级管理员直接通过权限码校验；否则必须包含接口声明的所有权限码。
 
 #### `@CurrentUser()`
 
@@ -1295,7 +1422,7 @@ Authorization: Bearer <accessToken>
   "data": {
     "id": 1,
     "username": "student001",
-    "status": true,
+    "status": "active",
     "profile": {
       "id": 1,
       "nickname": "student001",
@@ -1307,6 +1434,7 @@ Authorization: Bearer <accessToken>
     "createdAt": "2026-06-08T10:00:00.000Z",
     "updatedAt": "2026-06-08T10:00:00.000Z"
   },
+  "requestId": "4f4a3f2e-5c8e-4c4f-8a37-3f9a1e8f5c22",
   "timestamp": "2026-06-08T10:00:00.000Z"
 }
 ```
@@ -1349,6 +1477,7 @@ Authorization: Bearer <accessToken>
 {
   "code": 0,
   "data": ["role:create", "user:list", "user:update"],
+  "requestId": "4f4a3f2e-5c8e-4c4f-8a37-3f9a1e8f5c22",
   "timestamp": "2026-06-08T10:00:00.000Z"
 }
 ```
@@ -1370,7 +1499,7 @@ POST /api/permissions
 要求：
 
 ```text
-必须登录，并拥有 admin 角色
+必须登录，并拥有 permission:create 权限码
 ```
 
 请求体：
@@ -1402,7 +1531,7 @@ GET /api/permissions?page=1&pageSize=10&code=user
 要求：
 
 ```text
-必须登录，并拥有 admin 角色
+必须登录，并拥有 permission:list 权限码
 ```
 
 说明：
@@ -1422,7 +1551,7 @@ PUT /api/permissions/:id
 要求：
 
 ```text
-必须登录，并拥有 admin 角色
+必须登录，并拥有 permission:update 权限码
 ```
 
 请求体：
@@ -1462,7 +1591,7 @@ POST /api/roles
 要求：
 
 ```text
-必须登录，并拥有 admin 角色
+必须登录，并拥有 role:create 权限码
 ```
 
 请求体：
@@ -1496,7 +1625,7 @@ GET /api/roles?page=1&pageSize=10&roleName=admin
 要求：
 
 ```text
-必须登录，并拥有 admin 角色
+必须登录，并拥有 role:list 权限码
 ```
 
 说明：
@@ -1516,7 +1645,7 @@ PUT /api/roles/:id
 要求：
 
 ```text
-必须登录，并拥有 admin 角色
+必须登录，并拥有 role:update 权限码
 ```
 
 请求体：
@@ -1550,7 +1679,7 @@ GET /api/users?page=1&pageSize=10&nickname=student
 要求：
 
 ```text
-必须登录，并拥有 admin 角色
+必须登录，并拥有 user:list 权限码
 ```
 
 说明：
@@ -1571,7 +1700,7 @@ PUT /api/users/:id
 要求：
 
 ```text
-必须登录，并拥有 admin 角色
+必须登录，并拥有 user:update 权限码
 ```
 
 请求体：
@@ -1582,7 +1711,7 @@ PUT /api/users/:id
     "nickname": "新昵称"
   },
   "roles": [1, 2],
-  "status": true
+  "status": "active"
 }
 ```
 
@@ -1592,7 +1721,8 @@ PUT /api/users/:id
 - `roles` 是角色 ID 数组。
 - 传入重复角色 ID 会自动去重。
 - 绑定不存在的角色会返回 `角色不存在`。
-- `status=false` 会禁用账号，禁用后不能登录。
+- `status` 可选 `active`、`disabled`、`locked`。
+- `disabled` 和 `locked` 状态不能登录或继续鉴权。
 
 使用场景：
 
@@ -1618,11 +1748,49 @@ PUT /api/users/:id
 - 初始权限码。
 - 管理员和角色的绑定关系。
 
-## 8. 接口清单
+## 8. 文件上传模块
+
+位置：
+
+```text
+src/modules/files
+```
+
+文件模块采用“后端创建上传意图，前端直传 OSS，后端确认完成”的流程。
+
+核心流程：
+
+```text
+POST /api/files/upload-intents
+  ↓
+后端创建 files 记录，状态为 pending
+  ↓
+返回 OSS PUT 预签名 URL
+  ↓
+前端直传 OSS
+  ↓
+POST /api/files/:id/complete
+  ↓
+后端调用 OSS head 校验对象存在、大小和 Content-Type
+  ↓
+文件状态变为 uploaded
+```
+
+文件状态：
+
+| 状态 | 说明 |
+| --- | --- |
+| `pending` | 已创建上传意图，等待前端上传 |
+| `uploaded` | OSS 对象已校验存在 |
+| `used` | 文件已被业务正式使用 |
+
+临时文件清理任务会按批次删除过期的 `pending` 和 `uploaded` 文件，并记录成功和失败数量。
+
+## 9. 接口清单
 
 当前内置接口统一使用 `/api` 前缀。
 
-### 8.1 公开接口
+### 9.1 公开接口
 
 | 方法 | 路径 | 功能 | Token |
 | --- | --- | --- | --- |
@@ -1630,7 +1798,7 @@ PUT /api/users/:id
 | `POST` | `/api/auth/login` | 登录 | 不需要 |
 | `POST` | `/api/auth/refresh` | 刷新 token | 需要 Refresh Token |
 
-### 8.2 登录后可访问
+### 9.2 登录后可访问
 
 | 方法 | 路径 | 功能 | 角色 |
 | --- | --- | --- | --- |
@@ -1638,8 +1806,12 @@ PUT /api/users/:id
 | `POST` | `/api/auth/logout-all` | 退出全部会话 | 不限制 |
 | `GET` | `/api/profiles/me` | 当前用户资料 | 不限制 |
 | `GET` | `/api/permissions/me` | 当前用户权限码 | 不限制 |
+| `POST` | `/api/files/upload-intents` | 创建上传意图 | 不限制 |
+| `POST` | `/api/files/:id/complete` | 确认上传完成 | 不限制 |
+| `GET` | `/api/files/:id` | 文件详情 | 不限制 |
+| `DELETE` | `/api/files/:id` | 删除文件 | 不限制 |
 
-### 8.3 管理员接口
+### 9.3 管理员接口
 
 这些接口都需要：
 
@@ -1647,26 +1819,22 @@ PUT /api/users/:id
 Authorization: Bearer <accessToken>
 ```
 
-并且当前用户必须拥有：
+并且当前用户必须拥有对应权限码。拥有 `admin` 角色的用户会作为超级管理员通过权限码校验。
 
-```text
-admin
-```
+| 方法 | 路径 | 功能 | 权限码 |
+| --- | --- | --- | --- |
+| `GET` | `/api/users` | 用户列表 | `user:list` |
+| `PUT` | `/api/users/:id` | 更新用户 | `user:update` |
+| `POST` | `/api/roles` | 创建角色 | `role:create` |
+| `GET` | `/api/roles` | 角色列表 | `role:list` |
+| `PUT` | `/api/roles/:id` | 更新角色 | `role:update` |
+| `POST` | `/api/permissions` | 创建权限码 | `permission:create` |
+| `GET` | `/api/permissions` | 权限码列表 | `permission:list` |
+| `PUT` | `/api/permissions/:id` | 更新权限码 | `permission:update` |
 
-| 方法 | 路径 | 功能 |
-| --- | --- | --- |
-| `GET` | `/api/users` | 用户列表 |
-| `PUT` | `/api/users/:id` | 更新用户 |
-| `POST` | `/api/roles` | 创建角色 |
-| `GET` | `/api/roles` | 角色列表 |
-| `PUT` | `/api/roles/:id` | 更新角色 |
-| `POST` | `/api/permissions` | 创建权限码 |
-| `GET` | `/api/permissions` | 权限码列表 |
-| `PUT` | `/api/permissions/:id` | 更新权限码 |
+## 10. 常见开发示例
 
-## 9. 常见开发示例
-
-### 9.1 新增一个公开接口
+### 10.1 新增一个公开接口
 
 适合场景：
 
@@ -1703,7 +1871,7 @@ GET /api/health
 }
 ```
 
-### 9.2 新增一个需要登录的接口
+### 10.2 新增一个需要登录的接口
 
 默认不加 `@Public()` 就需要登录。
 
@@ -1730,7 +1898,7 @@ Authorization: Bearer <accessToken>
 - 我的收藏。
 - 我的消息。
 
-### 9.3 新增一个管理员接口
+### 10.3 新增一个管理员接口
 
 ```ts
 @Roles("admin")
@@ -1749,7 +1917,7 @@ export class AdminReportsController {
 - 数据统计。
 - 用户审核。
 
-### 9.4 新增一个分页列表接口
+### 10.4 新增一个分页列表接口
 
 DTO：
 
@@ -1765,7 +1933,7 @@ Service：
 
 ```ts
 async list(query: QueryArticlesDto): Promise<PageResult<Article>> {
-  const { pageSize, skip } = resolvePageQuery(query);
+  const { page, pageSize, skip } = resolvePageQuery(query);
   const title = query.title?.trim();
 
   const queryBuilder = this.articleRepository
@@ -1781,7 +1949,7 @@ async list(query: QueryArticlesDto): Promise<PageResult<Article>> {
   }
 
   const [items, total] = await queryBuilder.getManyAndCount();
-  return { items, total };
+  return createPageResult(items, total, page, pageSize);
 }
 ```
 
@@ -1794,7 +1962,7 @@ list(@Query() query: QueryArticlesDto) {
 }
 ```
 
-### 9.5 新增一个实体
+### 10.5 新增一个实体
 
 ```ts
 @Entity({ name: "articles", comment: "文章" })
@@ -1832,7 +2000,7 @@ export class ArticlesModule {}
 
 最后在 `AppModule` 或业务聚合模块中导入 `ArticlesModule`。
 
-### 9.6 在业务中发送邮件
+### 10.6 在业务中发送邮件
 
 ```ts
 @Injectable()
@@ -1861,7 +2029,7 @@ export class AccountService {
 - 找回密码邮件。
 - 账号安全提醒。
 
-### 9.7 在业务中使用缓存
+### 10.7 在业务中使用缓存
 
 ```ts
 @Injectable()
@@ -1895,35 +2063,9 @@ export class SettingsService {
 - 菜单权限读取。
 - 字典数据读取。
 
-### 9.8 扩展权限码守卫
+### 10.8 使用权限码守卫
 
-当前项目已经有权限码数据，但只内置了角色守卫。如果你希望接口按权限码控制，可以新增一个类似 `@Permissions()` 的装饰器和 guard。
-
-示例思路：
-
-```ts
-export const PERMISSIONS_KEY = "permissions";
-export const Permissions = (...permissions: string[]) =>
-  SetMetadata(PERMISSIONS_KEY, permissions);
-```
-
-Guard 核心逻辑：
-
-```ts
-const required = this.reflector.getAllAndOverride<string[]>(
-  PERMISSIONS_KEY,
-  [context.getHandler(), context.getClass()],
-);
-
-if (!required?.length) return true;
-
-const request = context.switchToHttp().getRequest<RequestWithUser>();
-return required.some((permission) =>
-  request.user.permissions.includes(permission),
-);
-```
-
-使用：
+接口可以通过 `@Permissions()` 声明细粒度权限码。权限码来自用户启用角色绑定的启用权限。
 
 ```ts
 @Permissions("user:update")
@@ -1936,9 +2078,9 @@ updateUser() {
 适合场景：
 
 - 不只是区分 `admin`，还要细分按钮级权限。
-- 同一个角色下不同用户拥有不同权限组合。
+- 前端按钮权限和服务端接口权限保持同一套权限码。
 
-## 10. 开发命令
+## 11. 开发命令
 
 | 命令 | 说明 |
 | --- | --- |
@@ -1969,16 +2111,16 @@ pnpm test
 
 这个模板已经完成了后端项目最常用的骨架：
 
-- 基础设施：配置、数据库、Redis、缓存、邮件、日志。
-- HTTP 规范：统一响应、统一异常、参数校验、分页。
-- 身份权限：注册登录、JWT、Refresh Token、会话、角色、权限码、用户资料。
-- 管理接口：用户、角色、权限码的后台管理能力。
+- 基础设施：配置、数据库、Redis、缓存、邮件、日志、OSS、可选 AI。
+- HTTP 规范：统一响应、统一异常、requestId、参数校验、分页。
+- 身份权限：注册登录、JWT、Refresh Token、会话、角色、权限码守卫、用户资料。
+- 管理接口：用户、角色、权限码和文件的基础管理能力。
 
 开发新业务时，优先复用已有模式：
 
 1. 新建 `module/controller/service/entity/dto`。
 2. DTO 中写清楚参数校验。
 3. Service 中处理业务和数据库异常。
-4. Controller 中用 `@Public()`、`@Roles()`、`@CurrentUser()` 控制访问。
-5. 列表接口统一继承 `PageQueryDto`，返回 `{ items, total }`。
+4. Controller 中用 `@Public()`、`@Roles()`、`@Permissions()`、`@CurrentUser()` 控制访问。
+5. 列表接口统一继承 `PageQueryDto`，返回 `{ items, total, page, pageSize, pages }`。
 6. 需要性能优化时使用缓存，需要通知时使用邮件，需要排查问题时看日志。

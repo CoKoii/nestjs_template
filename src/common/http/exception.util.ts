@@ -1,6 +1,6 @@
 import { HttpException } from "@nestjs/common";
-import type { Request } from "express";
 import { QueryFailedError } from "typeorm";
+import type { RequestWithRequestId } from "./request-id.middleware";
 
 const DEFAULT_MESSAGE = "Internal Server Error";
 const DATABASE_ERROR_MESSAGE = "数据库操作失败";
@@ -26,6 +26,7 @@ const SENSITIVE_KEYWORDS = [
 
 export type ExceptionLog = {
   context: string;
+  requestId: string | undefined;
   method: string;
   path: string;
   ip: string | undefined;
@@ -162,7 +163,7 @@ const collectCauses = (
 
 export const buildExceptionLog = (
   context: string,
-  request: Request & { user?: unknown },
+  request: RequestWithRequestId & { user?: unknown },
   statusCode: number,
   message: string,
   error?: Error,
@@ -171,6 +172,7 @@ export const buildExceptionLog = (
 
   return {
     context,
+    requestId: request.requestId,
     method: request.method,
     path: request.originalUrl ?? request.url,
     ip: request.ip,
@@ -191,9 +193,11 @@ export const buildExceptionLog = (
 export const buildExceptionResponse = (
   statusCode: number,
   message: string,
+  requestId?: string,
 ) => ({
   code: statusCode,
   message,
   data: null,
+  requestId,
   timestamp: new Date().toISOString(),
 });

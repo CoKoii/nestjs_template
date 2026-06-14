@@ -7,6 +7,7 @@ import { ConfigService } from "@nestjs/config";
 import type { ValidationError } from "class-validator";
 import { WINSTON_MODULE_NEST_PROVIDER } from "nest-winston";
 import { getAppEnvironment } from "./env";
+import { requestIdMiddleware } from "../http/request-id.middleware";
 
 const API_GLOBAL_PREFIX = "api";
 const DEFAULT_VALIDATION_MESSAGE = "参数校验失败";
@@ -42,6 +43,7 @@ export const setupApplication = (app: INestApplication) => {
 
   app.useLogger(app.get(WINSTON_MODULE_NEST_PROVIDER));
   app.enableShutdownHooks();
+  app.use(requestIdMiddleware);
   app.setGlobalPrefix(API_GLOBAL_PREFIX);
   app.enableCors({
     origin:

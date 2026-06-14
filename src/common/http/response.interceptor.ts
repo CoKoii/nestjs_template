@@ -6,6 +6,7 @@ import {
 } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { Observable, map } from "rxjs";
+import type { RequestWithRequestId } from "./request-id.middleware";
 import { SKIP_RESPONSE_WRAP_KEY } from "./skip-response-wrap.decorator";
 
 @Injectable()
@@ -25,10 +26,13 @@ export class ResponseInterceptor implements NestInterceptor {
       return next.handle();
     }
 
+    const request = context.switchToHttp().getRequest<RequestWithRequestId>();
+
     return next.handle().pipe(
       map((data) => ({
         code: 0,
         data,
+        requestId: request.requestId,
         timestamp: new Date().toISOString(),
       })),
     );

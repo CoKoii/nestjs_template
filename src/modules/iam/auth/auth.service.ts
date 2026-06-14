@@ -20,12 +20,14 @@ import {
   type RefreshTokenUser,
 } from "../../../common/auth/auth-user";
 import { getAuthEnvironment } from "../../../common/config/env";
-import { rethrowDatabaseError } from "../../../common/database/database-error.util";
-import { User } from "../users/user.entity";
+import { DatabaseErrorMapper } from "../../../common/database/database-error.mapper";
+import { User, UserStatus } from "../users/user.entity";
 import type { AuthRequestContext, AuthTokens } from "./auth.types";
 import { LoginDto } from "./dto/login.dto";
 import { RegisterDto } from "./dto/register.dto";
 import { AuthSession } from "./auth-session.entity";
+import { AuthPermissionCacheService } from "./auth-permission-cache.service";
+import { LoginRateLimitService } from "./login-rate-limit.service";
 
 interface IssuedAuthTokens extends AuthTokens {
   sessionId: string;
@@ -43,6 +45,9 @@ export class AuthService {
     private readonly authSessions: Repository<AuthSession>,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly permissionCache: AuthPermissionCacheService,
+    private readonly loginRateLimit: LoginRateLimitService,
+    private readonly databaseErrorMapper: DatabaseErrorMapper,
   ) {}
 
   // --------------------------------------------------------------------------------------------------
@@ -66,6 +71,15 @@ export class AuthService {
   // --------------------------------------------------------------------------------------------------
   // 创建会话校验查询构造器
   private createSessionValidationQueryBuilder() {
+    return this.authSessions
+      .createQueryBuilder("session")
+      .leftJoinAndSelect("session.user", "user");
+  }
+  // --------------------------------------------------------------------------------------------------
+
+  // --------------------------------------------------------------------------------------------------
+  // 创建会话基础鉴权查询构造器
+  private createSessionBaseAuthQueryBuilder() {
     return this.authSessions
       .createQueryBuilder("session")
       .leftJoinAndSelect("session.user", "user");
@@ -150,7 +164,7 @@ export class AuthService {
   // --------------------------------------------------------------------------------------------------
   // 校验用户状态
   private ensureUserIsActive(user: Pick<User, "status">): void {
-    if (!user.status) {
+    if (user.status !== UserStatus.ACTIVE) {
       throw new ForbiddenException("账户已被禁用");
     }
   }
@@ -194,6 +208,13 @@ export class AuthService {
       roles,
       permissions,
     };
+  }
+  // --------------------------------------------------------------------------------------------------
+
+  // --------------------------------------------------------------------------------------------------
+  // 获取用户角色ID
+  private getUserRoleIds(user: User): number[] {
+    return (user.roles ?? []).map((role) => role.id);
   }
   // --------------------------------------------------------------------------------------------------
 
@@ -398,7 +419,12 @@ export class AuthService {
   // --------------------------------------------------------------------------------------------------
   // 加载当前认证用户
   async resolveAuthUser(userId: number, sessionId: string): Promise<AuthUser> {
-    const session = await this.createSessionAuthQueryBuilder()
+    const cachedUser = await this.permissionCache.getCurrentUser(userId);
+    const sessionQueryBuilder = cachedUser
+      ? this.createSessionBaseAuthQueryBuilder()
+      : this.createSessionAuthQueryBuilder();
+
+    const session = await sessionQueryBuilder
       .where("session.id = :sessionId", { sessionId })
       .andWhere("session.userId = :userId", { userId })
       .andWhere("session.expiresAt > :now", { now: new Date() })
@@ -412,7 +438,24 @@ export class AuthService {
 
     await this.touchSessionIfStale(session);
 
-    return this.buildAuthUser(session.user, session.id);
+    const authUser = cachedUser
+      ? {
+          userId: session.userId,
+          sessionId: session.id,
+          username: cachedUser.username,
+          roles: cachedUser.roles,
+          permissions: cachedUser.permissions,
+        }
+      : this.buildAuthUser(session.user, session.id);
+
+    if (!cachedUser) {
+      await this.permissionCache.setCurrentUser(
+        authUser,
+        this.getUserRoleIds(session.user),
+      );
+    }
+
+    return authUser;
   }
   // --------------------------------------------------------------------------------------------------
 
@@ -438,7 +481,7 @@ export class AuthService {
         }),
       );
     } catch (error) {
-      rethrowDatabaseError(error, { unique: "当前用户名已被注册" });
+      this.databaseErrorMapper.rethrow(error, { unique: "当前用户名已被注册" });
       throw error;
     }
   }
@@ -462,11 +505,19 @@ export class AuthService {
   // --------------------------------------------------------------------------------------------------
   // 用户登录
   async login(dto: LoginDto, context: AuthRequestContext): Promise<AuthTokens> {
-    const user = await this.validateLoginUser(
-      await this.findUserForLogin(dto.username),
-      dto.password,
-    );
-    return this.issueSessionTokens(user, context);
+    await this.loginRateLimit.assertAllowed(context.ip, dto.username);
+
+    try {
+      const user = await this.validateLoginUser(
+        await this.findUserForLogin(dto.username),
+        dto.password,
+      );
+      await this.loginRateLimit.clear(context.ip, dto.username);
+      return this.issueSessionTokens(user, context);
+    } catch (error) {
+      await this.loginRateLimit.recordFailure(context.ip, dto.username);
+      throw error;
+    }
   }
   // --------------------------------------------------------------------------------------------------
 
@@ -487,17 +538,19 @@ export class AuthService {
 
   // --------------------------------------------------------------------------------------------------
   // 退出当前登录
-  async logout(user: AuthUser): Promise<string> {
+  async logout(user: AuthUser): Promise<{ success: true }> {
     await this.authSessions.delete({ id: user.sessionId, userId: user.userId });
-    return "退出成功";
+    await this.permissionCache.invalidateUser(user.userId);
+    return { success: true };
   }
   // --------------------------------------------------------------------------------------------------
 
   // --------------------------------------------------------------------------------------------------
   // 退出全部登录会话
-  async logoutAll(user: AuthUser): Promise<string> {
+  async logoutAll(user: AuthUser): Promise<{ success: true }> {
     await this.authSessions.delete({ userId: user.userId });
-    return "退出成功";
+    await this.permissionCache.invalidateUser(user.userId);
+    return { success: true };
   }
   // --------------------------------------------------------------------------------------------------
 }

@@ -2,11 +2,13 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import {
+  createPageResult,
   type PageResult,
   resolvePageQuery,
 } from "../../../common/http/page-query.dto";
-import { rethrowDatabaseError } from "../../../common/database/database-error.util";
+import { DatabaseErrorMapper } from "../../../common/database/database-error.mapper";
 import { Role } from "../roles/role.entity";
+import { AuthPermissionCacheService } from "../auth/auth-permission-cache.service";
 import { QueryUsersDto } from "./dto/query-users.dto";
 import { UpdateUserDto } from "./dto/update-user.dto";
 import { User } from "./user.entity";
@@ -15,12 +17,14 @@ import { User } from "./user.entity";
 export class UsersService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
+    private readonly permissionCache: AuthPermissionCacheService,
+    private readonly databaseErrorMapper: DatabaseErrorMapper,
   ) {}
 
   // --------------------------------------------------------------------------------------------------
   // 获取用户列表
   async list(query: QueryUsersDto): Promise<PageResult<User>> {
-    const { pageSize, skip } = resolvePageQuery(query);
+    const { page, pageSize, skip } = resolvePageQuery(query);
     const nickname = query.nickname?.trim();
     const queryBuilder = this.userRepository
       .createQueryBuilder("user")
@@ -44,7 +48,7 @@ export class UsersService {
     ).map(({ id }) => Number(id));
 
     if (!ids.length) {
-      return { items: [], total };
+      return createPageResult([], total, page, pageSize);
     }
 
     const items = await this.userRepository
@@ -55,7 +59,7 @@ export class UsersService {
       .orderBy("user.id", "DESC")
       .getMany();
 
-    return { items, total };
+    return createPageResult(items, total, page, pageSize);
   }
   // --------------------------------------------------------------------------------------------------
 
@@ -83,10 +87,13 @@ export class UsersService {
     }
     try {
       await this.userRepository.save(user);
+      await this.permissionCache.invalidateUser(id);
     } catch (error) {
-      rethrowDatabaseError(error, { foreignKeyConstraint: "角色不存在" });
+      this.databaseErrorMapper.rethrow(error, {
+        foreignKeyConstraint: "角色不存在",
+      });
     }
-    return "更新成功";
+    return { success: true };
   }
   // --------------------------------------------------------------------------------------------------
 }

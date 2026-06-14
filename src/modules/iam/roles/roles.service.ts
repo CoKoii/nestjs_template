@@ -2,10 +2,12 @@ import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
 import {
+  createPageResult,
   type PageResult,
   resolvePageQuery,
 } from "../../../common/http/page-query.dto";
-import { rethrowDatabaseError } from "../../../common/database/database-error.util";
+import { DatabaseErrorMapper } from "../../../common/database/database-error.mapper";
+import { AuthPermissionCacheService } from "../auth/auth-permission-cache.service";
 import { CreateRoleDto } from "./dto/create-role.dto";
 import { QueryRolesDto } from "./dto/query-roles.dto";
 import { UpdateRoleDto } from "./dto/update-role.dto";
@@ -16,6 +18,8 @@ export class RolesService {
   constructor(
     @InjectRepository(Role)
     private readonly roleRepository: Repository<Role>,
+    private readonly permissionCache: AuthPermissionCacheService,
+    private readonly databaseErrorMapper: DatabaseErrorMapper,
   ) {}
 
   // --------------------------------------------------------------------------------------------------
@@ -47,12 +51,13 @@ export class RolesService {
   // 创建角色
   async create(createRoleDto: CreateRoleDto) {
     try {
-      await this.roleRepository.save(
+      const role = await this.roleRepository.save(
         this.roleRepository.create(this.buildRolePayload(createRoleDto)),
       );
-      return "创建成功";
+      await this.permissionCache.invalidateByRoleIds([role.id]);
+      return { success: true };
     } catch (error) {
-      rethrowDatabaseError(error, {
+      this.databaseErrorMapper.rethrow(error, {
         unique: "角色名称已存在",
         foreignKeyConstraint: "权限不存在",
       });
@@ -63,7 +68,7 @@ export class RolesService {
   // --------------------------------------------------------------------------------------------------
   // 获取角色列表
   async list(query: QueryRolesDto): Promise<PageResult<Role>> {
-    const { pageSize, skip } = resolvePageQuery(query);
+    const { page, pageSize, skip } = resolvePageQuery(query);
     const roleName = query.roleName?.trim();
     const queryBuilder = this.roleRepository
       .createQueryBuilder("role")
@@ -86,7 +91,7 @@ export class RolesService {
     ).map(({ id }) => Number(id));
 
     if (!ids.length) {
-      return { items: [], total };
+      return createPageResult([], total, page, pageSize);
     }
 
     const items = await this.roleRepository
@@ -96,7 +101,7 @@ export class RolesService {
       .orderBy("role.id", "DESC")
       .getMany();
 
-    return { items, total };
+    return createPageResult(items, total, page, pageSize);
   }
   // --------------------------------------------------------------------------------------------------
 
@@ -110,9 +115,10 @@ export class RolesService {
       });
       if (!role) throw new NotFoundException("角色不存在");
       await this.roleRepository.save(role);
-      return "更新成功";
+      await this.permissionCache.invalidateByRoleIds([id]);
+      return { success: true };
     } catch (error) {
-      rethrowDatabaseError(error, {
+      this.databaseErrorMapper.rethrow(error, {
         unique: "角色名称已存在",
         foreignKeyConstraint: "权限不存在",
       });

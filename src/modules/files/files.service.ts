@@ -20,6 +20,8 @@ const TEMPORARY_STATUSES: FileStatus[] = [
 ];
 const TEMPORARY_PREFIX = "temporary/";
 const USED_PREFIX = "uploads/";
+const CLEANUP_BATCH_SIZE = 100;
+const CLEANUP_MAX_BATCHES = 10;
 
 const normalizeExtension = (filename: string) =>
   extname(filename)
@@ -95,6 +97,14 @@ export class FilesService {
       throw new BadRequestException("文件状态不允许完成上传");
     }
 
+    const object = await this.ossService.headObject(file.objectKey);
+    if (object.size !== file.size) {
+      throw new BadRequestException("文件大小与上传意图不一致");
+    }
+    if (object.contentType !== file.contentType) {
+      throw new BadRequestException("文件类型与上传意图不一致");
+    }
+
     file.status = FILE_STATUS.UPLOADED;
     return this.filesRepository.save(file);
   }
@@ -108,7 +118,7 @@ export class FilesService {
 
     await this.ossService.deleteObject(file.objectKey);
     await this.filesRepository.delete(file.id);
-    return "删除成功";
+    return { success: true };
   }
 
   async markUsed(id: number, userId: number) {
@@ -158,17 +168,46 @@ export class FilesService {
     const expiredAt = new Date(
       Date.now() - this.ossService.tempExpiresInHours * 60 * 60 * 1000,
     );
-    const files = await this.filesRepository.find({
-      where: {
-        status: In(TEMPORARY_STATUSES),
-        createdAt: LessThan(expiredAt),
-      },
-      take: 100,
-    });
+    let deletedCount = 0;
+    let failedCount = 0;
 
-    for (const file of files) {
-      await this.ossService.deleteObject(file.objectKey);
-      await this.filesRepository.delete(file.id);
+    for (let batch = 0; batch < CLEANUP_MAX_BATCHES; batch += 1) {
+      const files = await this.filesRepository.find({
+        where: {
+          status: In(TEMPORARY_STATUSES),
+          createdAt: LessThan(expiredAt),
+        },
+        take: CLEANUP_BATCH_SIZE,
+      });
+
+      if (!files.length) {
+        break;
+      }
+
+      for (const file of files) {
+        try {
+          await this.ossService.deleteObject(file.objectKey);
+          await this.filesRepository.delete(file.id);
+          deletedCount += 1;
+        } catch (error) {
+          failedCount += 1;
+          this.logger.warn(
+            `清理临时文件失败 ${file.objectKey}: ${
+              error instanceof Error ? error.message : String(error)
+            }`,
+          );
+        }
+      }
+
+      if (files.length < CLEANUP_BATCH_SIZE) {
+        break;
+      }
+    }
+
+    if (deletedCount || failedCount) {
+      this.logger.log(
+        `临时文件清理完成，成功 ${deletedCount} 条，失败 ${failedCount} 条`,
+      );
     }
   }
 }

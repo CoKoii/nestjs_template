@@ -77,6 +77,9 @@ export const getRedisEnvironment = (
 export const getAiEnvironment = (configService: Pick<ConfigService, "get">) =>
   createAiEnvironment(withConfigService(configService));
 
+export const getAiEnvironmentFromProcess = () =>
+  createAiEnvironment(withProcessEnvironment);
+
 export const getMailEnvironment = (configService: Pick<ConfigService, "get">) =>
   createMailEnvironment(withConfigService(configService));
 

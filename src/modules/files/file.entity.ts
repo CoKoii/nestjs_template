@@ -1,10 +1,13 @@
 import {
   Column,
-  CreateDateColumn,
   Entity,
+  JoinColumn,
+  ManyToOne,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
+  Relation,
 } from "typeorm";
+import { AuditableEntity } from "../../common/database/base.entity";
+import { User } from "../iam/users/user.entity";
 
 export const FILE_STATUS = {
   PENDING: "pending",
@@ -15,12 +18,16 @@ export const FILE_STATUS = {
 export type FileStatus = (typeof FILE_STATUS)[keyof typeof FILE_STATUS];
 
 @Entity({ name: "files", comment: "文件" })
-export class FileEntity {
+export class FileEntity extends AuditableEntity {
   @PrimaryGeneratedColumn({ comment: "文件ID" })
   id!: number;
 
   @Column({ comment: "上传用户ID" })
   userId!: number;
+
+  @ManyToOne(() => User, { onDelete: "CASCADE" })
+  @JoinColumn({ name: "userId" })
+  user!: Relation<User>;
 
   @Column({ comment: "原始文件名", length: 255 })
   originalName!: string;
@@ -47,10 +54,4 @@ export class FileEntity {
 
   @Column({ comment: "使用时间", type: "timestamp", nullable: true })
   usedAt?: Date | null;
-
-  @CreateDateColumn({ comment: "创建时间" })
-  createdAt!: Date;
-
-  @UpdateDateColumn({ comment: "更新时间" })
-  updatedAt!: Date;
 }

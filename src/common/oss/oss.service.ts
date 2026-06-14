@@ -4,6 +4,7 @@ import OSS from "ali-oss";
 import { getOssEnvironment } from "../config/env";
 import type {
   EnabledOssEnvironment,
+  OssObjectMetadata,
   OssEnvironment,
   SignedUploadUrl,
 } from "./oss.types";
@@ -111,5 +112,16 @@ export class OssService {
 
   async copyObject(sourceKey: string, targetKey: string) {
     await this.ensureEnabled().copy(targetKey, sourceKey);
+  }
+
+  async headObject(objectKey: string): Promise<OssObjectMetadata> {
+    const result = await this.ensureEnabled().head(objectKey);
+    const headers = result.res.headers as Record<string, string | undefined>;
+    const size = Number(headers["content-length"] ?? 0);
+
+    return {
+      size,
+      contentType: headers["content-type"] ?? "",
+    };
   }
 }
