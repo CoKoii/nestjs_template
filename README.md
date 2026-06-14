@@ -49,13 +49,7 @@ pnpm install
 
 ### 2.2 准备环境变量
 
-真实 `.env*` 文件不会入库。首次启动前可以从示例文件复制：
-
-```bash
-cp .env.development.example .env.development
-```
-
-然后修改 `.env.development`。开发环境至少需要数据库、Redis、JWT 配置。
+这个模板是自用项目，真实 `.env`、`.env.development`、`.env.production` 保留在本地使用，不提交到仓库。开发环境至少需要数据库、Redis、JWT 配置。
 
 ```env
 PORT=3000
@@ -228,10 +222,9 @@ AllExceptionFilter 统一捕获
 
 推荐用法：
 
-- `.env.example`、`.env.development.example`、`.env.production.example`：提交到仓库，作为配置模板。
-- `.env`：真实本地配置，不入库。
-- `.env.development`：真实开发配置，不入库。
-- `.env.production`：真实生产配置，不入库。
+- `.env`：所有环境共享配置，例如端口、数据库类型、Token 过期时间、邮件、AI 开关、OSS、日志。
+- `.env.development`：开发环境覆盖配置，例如本地数据库、Redis、JWT 密钥。
+- `.env.production`：生产环境覆盖配置，例如生产数据库、Redis、JWT 密钥、生产 CORS。
 
 最终优先级可以理解为：
 
@@ -306,7 +299,7 @@ DB_SYNC=true
 | `REDIS_PORT` | Redis 端口，例如 `6379` | 必填 |
 | `REDIS_USERNAME` | Redis 用户名 | 必填，可为空字符串 |
 | `REDIS_PASSWORD` | Redis 密码 | 必填，可为空字符串 |
-| `REDIS_DB` | Redis DB 编号，例如 `0` | 必填 |
+| `REDIS_DB` | Redis 逻辑数据库编号，`0` 是默认库 | 必填 |
 | `REDIS_KEY_PREFIX` | Redis key 前缀 | 必填，可为空字符串 |
 
 示例：
