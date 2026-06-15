@@ -204,10 +204,8 @@ export class FilesService {
       }
     }
 
-    if (deletedCount || failedCount) {
-      this.logger.log(
-        `临时文件清理完成，成功 ${deletedCount} 条，失败 ${failedCount} 条`,
-      );
-    }
+    this.logger.log(
+      `临时文件清理完成，成功 ${deletedCount} 条，失败 ${failedCount} 条`,
+    );
   }
 }

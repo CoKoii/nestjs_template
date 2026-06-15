@@ -35,11 +35,9 @@ export class AuthSessionCleanupService {
       }
     }
 
-    if (deletedCount > 0) {
-      this.logger.log(
-        `已删除 ${deletedCount} 条过期登录会话，耗时 ${Date.now() - startedAt}ms`,
-      );
-    }
+    this.logger.log(
+      `已删除 ${deletedCount} 条过期登录会话，耗时 ${Date.now() - startedAt}ms`,
+    );
   }
   // --------------------------------------------------------------------------------------------------
 
